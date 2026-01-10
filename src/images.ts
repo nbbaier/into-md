@@ -1,22 +1,11 @@
 import { load } from "cheerio";
 
-function toAbsoluteUrl(
-  url: string | undefined,
-  baseUrl: string
-): string | undefined {
-  if (!url) {
-    return undefined;
-  }
-  try {
-    return new URL(url, baseUrl).toString();
-  } catch {
-    return url;
-  }
-}
+import { getBodyHtml, toAbsoluteUrl } from "./utils";
 
 export function annotateImages(html: string, baseUrl: string): string {
   const $ = load(html);
-  $("img").each((_, img) => {
+
+  for (const img of $("img").toArray()) {
     const $img = $(img);
     const src = $img.attr("src");
     const absoluteSrc = toAbsoluteUrl(src, baseUrl);
@@ -32,8 +21,7 @@ export function annotateImages(html: string, baseUrl: string): string {
     if (caption) {
       $img.attr("data-into-md-caption", caption);
     }
-  });
+  }
 
-  const body = $("body");
-  return body.length ? (body.html() ?? "") : ($.root().html() ?? "");
+  return getBodyHtml($);
 }

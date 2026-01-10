@@ -1,46 +1,34 @@
 import { load } from "cheerio";
 import TurndownService from "turndown";
 
+import { getBodyHtml, toAbsoluteUrl } from "./utils";
+
 export interface ConvertOptions {
   baseUrl: string;
   stripLinks?: boolean;
 }
 
-function toAbsoluteUrl(
-  url: string | undefined,
-  baseUrl: string
-): string | undefined {
-  if (!url) {
-    return undefined;
-  }
-  try {
-    return new URL(url, baseUrl).toString();
-  } catch {
-    return url;
-  }
-}
-
 function prepareDom(html: string, baseUrl: string): string {
   const $ = load(html);
-  $("a[href]").each((_, el) => {
+
+  for (const el of $("a[href]").toArray()) {
     const $el = $(el);
     const absolute = toAbsoluteUrl($el.attr("href"), baseUrl);
     if (absolute) {
       $el.attr("href", absolute);
     }
-  });
+  }
 
-  $("img[src]").each((_, el) => {
+  for (const el of $("img[src]").toArray()) {
     const $el = $(el);
     const absolute = toAbsoluteUrl($el.attr("src"), baseUrl);
     if (absolute) {
       $el.attr("src", absolute);
     }
-  });
+  }
 
   $("script, style").remove();
-  const body = $("body");
-  return body.length ? (body.html() ?? "") : ($.root().html() ?? "");
+  return getBodyHtml($);
 }
 
 export function convertHtmlToMarkdown(

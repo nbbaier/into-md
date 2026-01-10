@@ -20,27 +20,28 @@ const defaultCacheDir = join(
   "into-md"
 );
 
-const defaultTtlMs = 60 * 60 * 1000;
+const DEFAULT_TTL_MS = 60 * 60 * 1000;
 
-function resolveCacheDir(cacheDir?: string): string {
-  return cacheDir ?? defaultCacheDir;
-}
-
-function buildCachePath(url: string, cacheDir = defaultCacheDir): string {
+const buildCachePath = (url: string, cacheDir = defaultCacheDir): string => {
   const hash = createHash("sha256").update(url).digest("hex");
   return join(cacheDir, `${hash}.json`);
-}
+};
 
 export async function readFromCache(
   url: string,
   options?: Partial<CacheOptions>
 ): Promise<CachedResponse | null> {
-  const { enabled = true, ttlMs = defaultTtlMs, cacheDir } = options ?? {};
+  const {
+    enabled = true,
+    ttlMs = DEFAULT_TTL_MS,
+    cacheDir = defaultCacheDir,
+  } = options ?? {};
+
   if (!enabled) {
     return null;
   }
 
-  const target = buildCachePath(url, resolveCacheDir(cacheDir));
+  const target = buildCachePath(url, cacheDir);
   try {
     const [file, info] = await Promise.all([
       readFile(target, "utf8"),
@@ -65,11 +66,13 @@ export async function writeToCache(
   content: string,
   options?: Partial<CacheOptions>
 ): Promise<void> {
-  const { enabled = true, cacheDir } = options ?? {};
+  const { enabled = true, cacheDir = defaultCacheDir } = options ?? {};
+
   if (!enabled) {
     return;
   }
-  const target = buildCachePath(url, resolveCacheDir(cacheDir));
+
+  const target = buildCachePath(url, cacheDir);
   await mkdir(dirname(target), { recursive: true });
   const payload: CachedResponse = { content, fetchedAt: Date.now(), url };
   await writeFile(target, JSON.stringify(payload, null, 2), "utf8");

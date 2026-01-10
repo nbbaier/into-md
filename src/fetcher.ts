@@ -28,14 +28,16 @@ interface CookieRecord {
   expires: number;
 }
 
-const defaultUserAgent =
+const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Safari/537.36";
 
-function logVerbose(message: string, verbose?: boolean) {
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+const logVerbose = (message: string, verbose?: boolean): void => {
   if (verbose) {
     console.error(message);
   }
-}
+};
 
 function parseNetscapeCookieLine(
   line: string
@@ -114,12 +116,12 @@ async function fetchWithHttp(
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
-    options.timeoutMs ?? 30_000
+    options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   );
 
   const { header: cookiesHeader } = parseCookiesFile(options.cookiesPath);
   const headers = new Headers({
-    "User-Agent": options.userAgent ?? defaultUserAgent,
+    "User-Agent": options.userAgent ?? DEFAULT_USER_AGENT,
   });
   if (cookiesHeader) {
     headers.set("Cookie", cookiesHeader);
@@ -140,9 +142,7 @@ async function fetchWithHttp(
 
     const finalUrl = response.url;
     const buffer = await response.arrayBuffer();
-    const encoding = options.encoding ?? undefined;
-    const decoder =
-      encoding !== null ? new TextDecoder(encoding) : new TextDecoder();
+    const decoder = new TextDecoder(options.encoding);
     const html = decoder.decode(buffer);
     return { finalUrl, fromCache: false, html };
   } catch (error) {
@@ -175,7 +175,7 @@ async function fetchWithBrowser(
   const { playwrightCookies } = parseCookiesFile(options.cookiesPath);
   const browser = await playwright.chromium.launch({ headless: true });
   const context = await browser.newContext({
-    userAgent: options.userAgent ?? defaultUserAgent,
+    userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
   });
 
   if (playwrightCookies.length) {
@@ -190,7 +190,7 @@ async function fetchWithBrowser(
 
   const page = await context.newPage();
   await page.goto(url, {
-    timeout: options.timeoutMs ?? 30_000,
+    timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     waitUntil: "networkidle",
   });
 

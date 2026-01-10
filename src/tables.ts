@@ -1,6 +1,8 @@
 import { type Cheerio, type CheerioAPI, load } from "cheerio";
 import type { AnyNode } from "domhandler";
 
+import { getBodyHtml } from "./utils";
+
 interface TableJson {
   caption?: string;
   headers: string[];
@@ -37,25 +39,26 @@ function extractRows(
       ? $table.find("tbody tr")
       : $table.find("tr").slice(1);
 
-  dataRows.each((_, row) => {
+  for (const row of dataRows.toArray()) {
     const cells = $(row).find("td, th");
     if (!cells.length) {
-      return;
+      continue;
     }
     const record: Record<string, string> = {};
-    cells.each((cellIndex, cell) => {
+    for (const [cellIndex, cell] of cells.toArray().entries()) {
       const key = headers[cellIndex] ?? `Column ${cellIndex + 1}`;
       record[key] = $(cell).text().trim();
-    });
+    }
     rows.push(record);
-  });
+  }
 
   return rows;
 }
 
 export function convertTablesToJson(html: string): string {
   const $ = load(html);
-  $("table").each((_, table) => {
+
+  for (const table of $("table").toArray()) {
     const $table = $(table);
     const caption = $table.find("caption").first().text().trim() || undefined;
     const headers = extractHeaders($table, $);
@@ -71,8 +74,7 @@ export function convertTablesToJson(html: string): string {
       .attr("data-into-md-table", "true")
       .text(JSON.stringify(json, null, 2));
     $table.replaceWith(pre);
-  });
+  }
 
-  const body = $("body");
-  return body.length ? (body.html() ?? "") : ($.root().html() ?? "");
+  return getBodyHtml($);
 }
