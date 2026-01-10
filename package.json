@@ -1,6 +1,6 @@
 {
   "name": "into-md",
-  "private": true,
+  "private": false,
   "bin": {
     "into-md": "dist/index.mjs"
   },
