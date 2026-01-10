@@ -1,5 +1,4 @@
-import  { type CheerioAPI, type Element } from "cheerio";
-
+import type { CheerioAPI, Element } from "cheerio";
 import * as cheerio from "cheerio";
 
 interface TableJson {
@@ -43,7 +42,9 @@ function extractRows(
 
   dataRows.each((_, row) => {
     const cells = $(row).find("td, th");
-    if (!cells.length) {return;}
+    if (!cells.length) {
+      return;
+    }
     const record: Record<string, string> = {};
     cells.each((cellIndex, cell) => {
       const key = headers[cellIndex] ?? `Column ${cellIndex + 1}`;

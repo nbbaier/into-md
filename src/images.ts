@@ -4,7 +4,9 @@ function toAbsoluteUrl(
   url: string | undefined,
   baseUrl: string
 ): string | undefined {
-  if (!url) {return undefined;}
+  if (!url) {
+    return undefined;
+  }
   try {
     return new URL(url, baseUrl).toString();
   } catch {

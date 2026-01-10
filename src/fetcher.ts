@@ -1,7 +1,6 @@
 import { basename } from "node:path";
 
-import  { type CacheOptions } from "./cache";
-
+import type { CacheOptions } from "./cache";
 import { readFromCache, writeToCache } from "./cache";
 
 export interface FetchOptions {
@@ -43,13 +42,16 @@ function parseCookiesFile(cookiesPath?: string): {
   header: string | undefined;
   playwrightCookies: CookieRecord[];
 } {
-  if (!cookiesPath) {return { header: undefined, playwrightCookies: [] };}
+  if (!cookiesPath) {
+    return { header: undefined, playwrightCookies: [] };
+  }
   let content: string;
   try {
     content = Bun.readFileSync(cookiesPath, "utf8");
   } catch (error) {
     throw new Error(
-      `Unable to read cookies file "${basename(cookiesPath)}": ${String(error)}`, { cause: error }
+      `Unable to read cookies file "${basename(cookiesPath)}": ${String(error)}`,
+      { cause: error }
     );
   }
 
@@ -57,9 +59,13 @@ function parseCookiesFile(cookiesPath?: string): {
   const headerPairs: string[] = [];
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {continue;}
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
     const parts = trimmed.split("\t");
-    if (parts.length < 7) {continue;}
+    if (parts.length < 7) {
+      continue;
+    }
     const [domain, , path, secureFlag, expires, name, value] = parts;
     entries.push({
       domain,
@@ -92,7 +98,9 @@ async function fetchWithHttp(
   const headers = new Headers({
     "User-Agent": options.userAgent ?? defaultUserAgent,
   });
-  if (cookiesHeader) {headers.set("Cookie", cookiesHeader);}
+  if (cookiesHeader) {
+    headers.set("Cookie", cookiesHeader);
+  }
 
   try {
     const response = await fetch(url, {
@@ -111,7 +119,7 @@ async function fetchWithHttp(
     const buffer = await response.arrayBuffer();
     const encoding = options.encoding ?? undefined;
     const decoder =
-      encoding != null ? new TextDecoder(encoding) : new TextDecoder();
+      encoding !== null ? new TextDecoder(encoding) : new TextDecoder();
     const html = decoder.decode(buffer);
     return { finalUrl, fromCache: false, html };
   } catch (error) {
@@ -136,7 +144,8 @@ async function fetchWithBrowser(
     throw new Error(
       `JS mode requested but playwright is not installed. Install it and retry. (${String(
         error
-      )})`, { cause: error }
+      )})`,
+      { cause: error }
     );
   }
 

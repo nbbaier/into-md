@@ -55,7 +55,7 @@ export function extractContent(
   { raw = false, excludeSelectors = [], baseUrl }: ExtractOptions
 ): ExtractedContent {
   const dom = new JSDOM(html, { url: baseUrl });
-  const {document} = dom.window;
+  const { document } = dom.window;
 
   if (excludeSelectors.length) {
     removeNodes(document, excludeSelectors);

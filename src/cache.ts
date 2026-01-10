@@ -36,7 +36,9 @@ export async function readFromCache(
   options?: Partial<CacheOptions>
 ): Promise<CachedResponse | null> {
   const { enabled = true, ttlMs = defaultTtlMs, cacheDir } = options ?? {};
-  if (!enabled) {return null;}
+  if (!enabled) {
+    return null;
+  }
 
   const target = buildCachePath(url, resolveCacheDir(cacheDir));
   try {
@@ -46,8 +48,12 @@ export async function readFromCache(
     ]);
     const payload = JSON.parse(file) as CachedResponse;
     const isFresh = info.mtimeMs + ttlMs > Date.now();
-    if (!isFresh) {return null;}
-    if (payload.url !== url) {return null;}
+    if (!isFresh) {
+      return null;
+    }
+    if (payload.url !== url) {
+      return null;
+    }
     return payload;
   } catch {
     return null;
@@ -60,7 +66,9 @@ export async function writeToCache(
   options?: Partial<CacheOptions>
 ): Promise<void> {
   const { enabled = true, cacheDir } = options ?? {};
-  if (!enabled) {return;}
+  if (!enabled) {
+    return;
+  }
   const target = buildCachePath(url, resolveCacheDir(cacheDir));
   await mkdir(dirname(target), { recursive: true });
   const payload: CachedResponse = { content, fetchedAt: Date.now(), url };
