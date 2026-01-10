@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { type CacheOptions, readFromCache, writeToCache } from "./cache";
 
@@ -36,6 +37,42 @@ function logVerbose(message: string, verbose?: boolean) {
   }
 }
 
+function parseNetscapeCookieLine(
+  line: string
+): { record: CookieRecord; headerPair: string } | null {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) {
+    return null;
+  }
+
+  const parts = trimmed.split("\t");
+  if (parts.length < 7) {
+    return null;
+  }
+
+  const domain = parts[0];
+  const path = parts[2];
+  const secureFlag = parts[3];
+  const expires = parts[4];
+  const name = parts[5];
+  const value = parts[6];
+  if (!(domain && path && secureFlag && expires && name && value)) {
+    return null;
+  }
+
+  return {
+    headerPair: `${name}=${value}`,
+    record: {
+      domain,
+      expires: Number(expires),
+      name,
+      path,
+      secure: secureFlag.toLowerCase() === "true",
+      value,
+    },
+  };
+}
+
 function parseCookiesFile(cookiesPath?: string): {
   header: string | undefined;
   playwrightCookies: CookieRecord[];
@@ -45,7 +82,7 @@ function parseCookiesFile(cookiesPath?: string): {
   }
   let content: string;
   try {
-    content = Bun.readFileSync(cookiesPath, "utf8");
+    content = readFileSync(cookiesPath, "utf8");
   } catch (error) {
     throw new Error(
       `Unable to read cookies file "${basename(cookiesPath)}": ${String(error)}`,
@@ -56,24 +93,12 @@ function parseCookiesFile(cookiesPath?: string): {
   const entries: CookieRecord[] = [];
   const headerPairs: string[] = [];
   for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
+    const parsed = parseNetscapeCookieLine(line);
+    if (!parsed) {
       continue;
     }
-    const parts = trimmed.split("\t");
-    if (parts.length < 7) {
-      continue;
-    }
-    const [domain, , path, secureFlag, expires, name, value] = parts;
-    entries.push({
-      domain,
-      expires: Number(expires),
-      name,
-      path,
-      secure: secureFlag.toLowerCase() === "true",
-      value,
-    });
-    headerPairs.push(`${name}=${value}`);
+    entries.push(parsed.record);
+    headerPairs.push(parsed.headerPair);
   }
 
   return {

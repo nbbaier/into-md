@@ -19,7 +19,9 @@ export interface ExtractedContent {
 
 function removeNodes(document: Document, selectors: string[]) {
   for (const selector of selectors) {
-    document.querySelectorAll(selector)?.forEach((node) => node.remove());
+    for (const node of Array.from(document.querySelectorAll(selector))) {
+      node.remove();
+    }
   }
 }
 

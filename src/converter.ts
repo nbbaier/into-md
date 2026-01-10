@@ -1,4 +1,4 @@
-import * as cheerio from "cheerio";
+import { load } from "cheerio";
 import TurndownService from "turndown";
 
 export interface ConvertOptions {
@@ -21,7 +21,7 @@ function toAbsoluteUrl(
 }
 
 function prepareDom(html: string, baseUrl: string): string {
-  const $ = cheerio.load(html);
+  const $ = load(html);
   $("a[href]").each((_, el) => {
     const $el = $(el);
     const absolute = toAbsoluteUrl($el.attr("href"), baseUrl);

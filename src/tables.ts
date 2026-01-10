@@ -1,5 +1,5 @@
-import type { CheerioAPI, Element } from "cheerio";
-import * as cheerio from "cheerio";
+import { type Cheerio, type CheerioAPI, load } from "cheerio";
+import type { AnyNode } from "domhandler";
 
 interface TableJson {
   caption?: string;
@@ -7,10 +7,7 @@ interface TableJson {
   rows: Record<string, string>[];
 }
 
-function extractHeaders(
-  $table: cheerio.Cheerio<Element>,
-  $: CheerioAPI
-): string[] {
+function extractHeaders($table: Cheerio<AnyNode>, $: CheerioAPI): string[] {
   const explicitHeaders = $table.find("thead th");
   if (explicitHeaders.length) {
     return explicitHeaders
@@ -30,7 +27,7 @@ function extractHeaders(
 }
 
 function extractRows(
-  $table: cheerio.Cheerio<Element>,
+  $table: Cheerio<AnyNode>,
   headers: string[],
   $: CheerioAPI
 ): Record<string, string>[] {
@@ -57,7 +54,7 @@ function extractRows(
 }
 
 export function convertTablesToJson(html: string): string {
-  const $ = cheerio.load(html);
+  const $ = load(html);
   $("table").each((_, table) => {
     const $table = $(table);
     const caption = $table.find("caption").first().text().trim() || undefined;

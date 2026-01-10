@@ -1,4 +1,4 @@
-import * as cheerio from "cheerio";
+import { load } from "cheerio";
 
 function toAbsoluteUrl(
   url: string | undefined,
@@ -15,7 +15,7 @@ function toAbsoluteUrl(
 }
 
 export function annotateImages(html: string, baseUrl: string): string {
-  const $ = cheerio.load(html);
+  const $ = load(html);
   $("img").each((_, img) => {
     const $img = $(img);
     const src = $img.attr("src");

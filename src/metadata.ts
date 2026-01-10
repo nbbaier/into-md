@@ -9,22 +9,22 @@ export interface FrontmatterInput {
 export function buildFrontmatter(meta: FrontmatterInput): string {
   const lines = ["---"];
   if (meta.title) {
-    lines.push(`title: "${escape(meta.title)}"`);
+    lines.push(`title: "${escapeFrontmatter(meta.title)}"`);
   }
   if (meta.description) {
-    lines.push(`description: "${escape(meta.description)}"`);
+    lines.push(`description: "${escapeFrontmatter(meta.description)}"`);
   }
   if (meta.author) {
-    lines.push(`author: "${escape(meta.author)}"`);
+    lines.push(`author: "${escapeFrontmatter(meta.author)}"`);
   }
   if (meta.date) {
-    lines.push(`date: "${escape(meta.date)}"`);
+    lines.push(`date: "${escapeFrontmatter(meta.date)}"`);
   }
-  lines.push(`source: "${escape(meta.source)}"`);
+  lines.push(`source: "${escapeFrontmatter(meta.source)}"`);
   lines.push("---");
   return lines.join("\n");
 }
 
-function escape(value: string): string {
+function escapeFrontmatter(value: string): string {
   return value.replaceAll('"', String.raw`\"`);
 }
