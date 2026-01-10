@@ -1,7 +1,5 @@
 import { basename } from "node:path";
-
-import type { CacheOptions } from "./cache";
-import { readFromCache, writeToCache } from "./cache";
+import { type CacheOptions, readFromCache, writeToCache } from "./cache";
 
 export interface FetchOptions {
   useJs?: boolean;

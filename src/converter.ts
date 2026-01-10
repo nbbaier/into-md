@@ -87,7 +87,7 @@ export function convertHtmlToMarkdown(
     filter: (node) =>
       node.nodeName === "PRE" &&
       (node as HTMLElement).getAttribute("data-into-md-table") === "true",
-    replacement: (content, node) => {
+    replacement: (_content, node) => {
       const text = (node as HTMLElement).textContent?.trim() ?? "";
       return `\`\`\`json\n${text}\n\`\`\``;
     },

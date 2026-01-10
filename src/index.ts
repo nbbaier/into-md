@@ -1,5 +1,5 @@
-import { Command } from "commander";
 import { writeFile } from "node:fs/promises";
+import { Command } from "commander";
 
 import { convertHtmlToMarkdown } from "./converter";
 import { extractContent } from "./extractor";

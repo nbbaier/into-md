@@ -22,7 +22,7 @@ const defaultCacheDir = join(
 
 const defaultTtlMs = 60 * 60 * 1000;
 
-export function resolveCacheDir(cacheDir?: string): string {
+function resolveCacheDir(cacheDir?: string): string {
   return cacheDir ?? defaultCacheDir;
 }
 

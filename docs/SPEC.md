@@ -98,12 +98,12 @@ Tables are converted to fenced JSON blocks for reliable LLM parsing:
 
 ```json
 {
-  "caption": "Quarterly Revenue",
-  "headers": ["Quarter", "Revenue", "Growth"],
-  "rows": [
-    { "Quarter": "Q1", "Revenue": "$1.2M", "Growth": "12%" },
-    { "Quarter": "Q2", "Revenue": "$1.5M", "Growth": "25%" }
-  ]
+	"caption": "Quarterly Revenue",
+	"headers": ["Quarter", "Revenue", "Growth"],
+	"rows": [
+		{ "Quarter": "Q1", "Revenue": "$1.2M", "Growth": "12%" },
+		{ "Quarter": "Q2", "Revenue": "$1.5M", "Growth": "25%" }
+	]
 }
 ```
 
