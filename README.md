@@ -5,40 +5,39 @@ A CLI tool that fetches web pages and converts them to clean markdown, optimized
 ## Installation
 
 ```bash
+# Local development
 bun install
+
+# Global install (from npm registry)
+bun add -g into-md
+# or
+npm install -g into-md
+# or
+yarn global add into-md
 ```
 
 ## Usage
 
 ```bash
-# Run directly
-bun run start -- <url>
+# If installed globakky
+into-md <url>
 
-# Or build and run the CLI
-bun run build
-./dist/index.mjs <url>
+# If installed locally
+bun run into-md <url>
 ```
-
 ### Examples
-
 ```bash
-# Output to stdout
-bun run start -- https://example.com/article
-
-# Save to file
-bun run start -- https://example.com/article -o article.md
-
 # Use headless browser for JS-rendered content
-bun run start -- https://spa-site.com/page --js
+into-md https://spa-site.com/page --js
 
 # Skip content extraction, convert full page
-bun run start -- https://example.com --raw
+into-md https://example.com --raw
 
 # With authentication cookies
-bun run start -- https://private-site.com/page --cookies cookies.txt
+into-md https://private-site.com/page --cookies cookies.txt
 
 # Verbose output
-bun run start -- https://example.com/article -v
+into-md https://example.com/article -v
 ```
 
 ## Options
