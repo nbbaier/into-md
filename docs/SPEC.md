@@ -44,21 +44,21 @@ into-md https://example.com/article -v
 
 ## Options
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-o, --output <file>` | Write output to file instead of stdout | stdout |
-| `--js` | Use headless browser (Playwright) for JS-rendered content | disabled |
-| `--raw` | Skip content extraction, convert entire HTML | disabled |
-| `--cookies <file>` | Path to cookies file for authenticated requests | none |
-| `--user-agent <string>` | Custom User-Agent header | browser-like UA |
-| `--encoding <encoding>` | Force character encoding (auto-detected by default) | auto |
-| `--strip-links` | Remove hyperlinks, keep only anchor text | disabled |
-| `--exclude <selectors>` | CSS selectors to exclude (comma-separated) | none |
-| `--timeout <ms>` | Request timeout in milliseconds | 30000 |
-| `--no-cache` | Bypass response cache | cache enabled |
-| `-v, --verbose` | Show detailed progress information | minimal |
-| `-h, --help` | Show help | - |
-| `--version` | Show version | - |
+| Flag                    | Description                                               | Default         |
+| ----------------------- | --------------------------------------------------------- | --------------- |
+| `-o, --output <file>`   | Write output to file instead of stdout                    | stdout          |
+| `--js`                  | Use headless browser (Playwright) for JS-rendered content | disabled        |
+| `--raw`                 | Skip content extraction, convert entire HTML              | disabled        |
+| `--cookies <file>`      | Path to cookies file for authenticated requests           | none            |
+| `--user-agent <string>` | Custom User-Agent header                                  | browser-like UA |
+| `--encoding <encoding>` | Force character encoding (auto-detected by default)       | auto            |
+| `--strip-links`         | Remove hyperlinks, keep only anchor text                  | disabled        |
+| `--exclude <selectors>` | CSS selectors to exclude (comma-separated)                | none            |
+| `--timeout <ms>`        | Request timeout in milliseconds                           | 30000           |
+| `--no-cache`            | Bypass response cache                                     | cache enabled   |
+| `-v, --verbose`         | Show detailed progress information                        | minimal         |
+| `-h, --help`            | Show help                                                 | -               |
+| `--version`             | Show version                                              | -               |
 
 ## Output Format
 
@@ -89,7 +89,7 @@ Images include alt text, URL, and surrounding context:
 
 ```markdown
 ![Diagram showing the system architecture](https://example.com/images/arch.png)
-*Figure 1: The system uses a microservices architecture with three main components.*
+_Figure 1: The system uses a microservices architecture with three main components._
 ```
 
 ### Tables
@@ -101,8 +101,8 @@ Tables are converted to fenced JSON blocks for reliable LLM parsing:
   "caption": "Quarterly Revenue",
   "headers": ["Quarter", "Revenue", "Growth"],
   "rows": [
-    {"Quarter": "Q1", "Revenue": "$1.2M", "Growth": "12%"},
-    {"Quarter": "Q2", "Revenue": "$1.5M", "Growth": "25%"}
+    { "Quarter": "Q1", "Revenue": "$1.2M", "Growth": "12%" },
+    { "Quarter": "Q2", "Revenue": "$1.5M", "Growth": "25%" }
   ]
 }
 ```

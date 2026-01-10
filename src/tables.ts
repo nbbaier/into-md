@@ -1,11 +1,12 @@
-import * as cheerio from "cheerio";
-import type { CheerioAPI, Element } from "cheerio";
+import  { type CheerioAPI, type Element } from "cheerio";
 
-type TableJson = {
+import * as cheerio from "cheerio";
+
+interface TableJson {
   caption?: string;
   headers: string[];
   rows: Record<string, string>[];
-};
+}
 
 function extractHeaders(
   $table: cheerio.Cheerio<Element>,
@@ -42,7 +43,7 @@ function extractRows(
 
   dataRows.each((_, row) => {
     const cells = $(row).find("td, th");
-    if (!cells.length) return;
+    if (!cells.length) {return;}
     const record: Record<string, string> = {};
     cells.each((cellIndex, cell) => {
       const key = headers[cellIndex] ?? `Column ${cellIndex + 1}`;
@@ -75,5 +76,5 @@ export function convertTablesToJson(html: string): string {
   });
 
   const body = $("body");
-  return body.length ? body.html() ?? "" : $.root().html() ?? "";
+  return body.length ? (body.html() ?? "") : ($.root().html() ?? "");
 }

@@ -1,13 +1,13 @@
-import { JSDOM } from "jsdom";
 import { Readability } from "@mozilla/readability";
+import { JSDOM } from "jsdom";
 
-export type ExtractOptions = {
+export interface ExtractOptions {
   raw?: boolean;
   excludeSelectors?: string[];
   baseUrl: string;
-};
+}
 
-export type ExtractedContent = {
+export interface ExtractedContent {
   html: string;
   metadata: {
     title?: string;
@@ -15,7 +15,7 @@ export type ExtractedContent = {
     author?: string;
     source: string;
   };
-};
+}
 
 function removeNodes(document: Document, selectors: string[]) {
   for (const selector of selectors) {
@@ -26,7 +26,9 @@ function removeNodes(document: Document, selectors: string[]) {
 function extractMetadata(document: Document, source: string) {
   const title =
     document.querySelector("title")?.textContent ??
-    document.querySelector('meta[property="og:title"]')?.getAttribute("content") ??
+    document
+      .querySelector('meta[property="og:title"]')
+      ?.getAttribute("content") ??
     undefined;
 
   const description =
@@ -45,7 +47,7 @@ function extractMetadata(document: Document, source: string) {
       ?.getAttribute("content") ??
     undefined;
 
-  return { title: title ?? undefined, description, author, source };
+  return { author, description, source, title: title ?? undefined };
 }
 
 export function extractContent(
@@ -53,7 +55,7 @@ export function extractContent(
   { raw = false, excludeSelectors = [], baseUrl }: ExtractOptions
 ): ExtractedContent {
   const dom = new JSDOM(html, { url: baseUrl });
-  const document = dom.window.document;
+  const {document} = dom.window;
 
   if (excludeSelectors.length) {
     removeNodes(document, excludeSelectors);

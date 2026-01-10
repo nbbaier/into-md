@@ -1,8 +1,10 @@
-import { basename } from "path";
-import type { CacheOptions } from "./cache";
+import { basename } from "node:path";
+
+import  { type CacheOptions } from "./cache";
+
 import { readFromCache, writeToCache } from "./cache";
 
-export type FetchOptions = {
+export interface FetchOptions {
   useJs?: boolean;
   cookiesPath?: string;
   userAgent?: string;
@@ -11,22 +13,22 @@ export type FetchOptions = {
   cache?: Partial<CacheOptions>;
   noCache?: boolean;
   verbose?: boolean;
-};
+}
 
-export type FetchResult = {
+export interface FetchResult {
   html: string;
   finalUrl: string;
   fromCache: boolean;
-};
+}
 
-type CookieRecord = {
+interface CookieRecord {
   name: string;
   value: string;
   domain: string;
   path: string;
   secure: boolean;
   expires: number;
-};
+}
 
 const defaultUserAgent =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Safari/537.36";
@@ -41,13 +43,13 @@ function parseCookiesFile(cookiesPath?: string): {
   header: string | undefined;
   playwrightCookies: CookieRecord[];
 } {
-  if (!cookiesPath) return { header: undefined, playwrightCookies: [] };
+  if (!cookiesPath) {return { header: undefined, playwrightCookies: [] };}
   let content: string;
   try {
     content = Bun.readFileSync(cookiesPath, "utf8");
   } catch (error) {
     throw new Error(
-      `Unable to read cookies file "${basename(cookiesPath)}": ${String(error)}`
+      `Unable to read cookies file "${basename(cookiesPath)}": ${String(error)}`, { cause: error }
     );
   }
 
@@ -55,17 +57,17 @@ function parseCookiesFile(cookiesPath?: string): {
   const headerPairs: string[] = [];
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
+    if (!trimmed || trimmed.startsWith("#")) {continue;}
     const parts = trimmed.split("\t");
-    if (parts.length < 7) continue;
+    if (parts.length < 7) {continue;}
     const [domain, , path, secureFlag, expires, name, value] = parts;
     entries.push({
       domain,
-      path,
-      name,
-      value,
-      secure: secureFlag.toLowerCase() === "true",
       expires: Number(expires),
+      name,
+      path,
+      secure: secureFlag.toLowerCase() === "true",
+      value,
     });
     headerPairs.push(`${name}=${value}`);
   }
@@ -90,12 +92,12 @@ async function fetchWithHttp(
   const headers = new Headers({
     "User-Agent": options.userAgent ?? defaultUserAgent,
   });
-  if (cookiesHeader) headers.set("Cookie", cookiesHeader);
+  if (cookiesHeader) {headers.set("Cookie", cookiesHeader);}
 
   try {
     const response = await fetch(url, {
-      method: "GET",
       headers,
+      method: "GET",
       redirect: "follow",
       signal: controller.signal,
     });
@@ -111,13 +113,13 @@ async function fetchWithHttp(
     const decoder =
       encoding != null ? new TextDecoder(encoding) : new TextDecoder();
     const html = decoder.decode(buffer);
-    return { html, finalUrl, fromCache: false };
+    return { finalUrl, fromCache: false, html };
   } catch (error) {
     const prefix =
       error instanceof Error && error.name === "AbortError"
         ? "Request timed out"
         : "Request failed";
-    throw new Error(`${prefix}: ${String(error)}`);
+    throw new Error(`${prefix}: ${String(error)}`, { cause: error });
   } finally {
     clearTimeout(timeout);
   }
@@ -134,7 +136,7 @@ async function fetchWithBrowser(
     throw new Error(
       `JS mode requested but playwright is not installed. Install it and retry. (${String(
         error
-      )})`
+      )})`, { cause: error }
     );
   }
 
@@ -156,15 +158,15 @@ async function fetchWithBrowser(
 
   const page = await context.newPage();
   await page.goto(url, {
-    waitUntil: "networkidle",
     timeout: options.timeoutMs ?? 30_000,
+    waitUntil: "networkidle",
   });
 
   const html = await page.content();
   const finalUrl = page.url();
 
   await browser.close();
-  return { html, finalUrl, fromCache: false };
+  return { finalUrl, fromCache: false, html };
 }
 
 export async function fetchPage(
@@ -179,7 +181,7 @@ export async function fetchPage(
     });
     if (cached) {
       logVerbose("Cache hit", options.verbose);
-      return { html: cached.content, finalUrl: url, fromCache: true };
+      return { finalUrl: url, fromCache: true, html: cached.content };
     }
   }
 

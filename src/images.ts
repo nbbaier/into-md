@@ -1,7 +1,10 @@
 import * as cheerio from "cheerio";
 
-function toAbsoluteUrl(url: string | undefined, baseUrl: string): string | undefined {
-  if (!url) return undefined;
+function toAbsoluteUrl(
+  url: string | undefined,
+  baseUrl: string
+): string | undefined {
+  if (!url) {return undefined;}
   try {
     return new URL(url, baseUrl).toString();
   } catch {
@@ -30,5 +33,5 @@ export function annotateImages(html: string, baseUrl: string): string {
   });
 
   const body = $("body");
-  return body.length ? body.html() ?? "" : $.root().html() ?? "";
+  return body.length ? (body.html() ?? "") : ($.root().html() ?? "");
 }
