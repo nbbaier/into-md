@@ -1,8 +1,12 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
+import { detectNeedForBrowser } from "./auto-detect";
 import { type CacheOptions, readFromCache, writeToCache } from "./cache";
 
+export type RenderMode = "auto" | "static" | "headless";
+
 export interface FetchOptions {
+  mode?: RenderMode;
   useJs?: boolean;
   cookiesPath?: string;
   userAgent?: string;
@@ -11,12 +15,14 @@ export interface FetchOptions {
   cache?: Partial<CacheOptions>;
   noCache?: boolean;
   verbose?: boolean;
+  raw?: boolean;
 }
 
 export interface FetchResult {
   html: string;
   finalUrl: string;
   fromCache: boolean;
+  strategyUsed?: "static" | "headless";
 }
 
 interface CookieRecord {
@@ -191,8 +197,19 @@ async function fetchWithBrowser(
   const page = await context.newPage();
   await page.goto(url, {
     timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    waitUntil: "networkidle",
+    waitUntil: "load",
   });
+
+  const networkidleTimeout = Math.max(
+    5000,
+    Math.floor((options.timeoutMs ?? DEFAULT_TIMEOUT_MS) / 2)
+  );
+
+  try {
+    await page.waitForLoadState("networkidle", { timeout: networkidleTimeout });
+  } catch {
+    // Ignore timeout - networkidle may not be reached, continue with page content
+  }
 
   const html = await page.content();
   const finalUrl = page.url();
@@ -201,36 +218,200 @@ async function fetchWithBrowser(
   return { finalUrl, fromCache: false, html };
 }
 
-export async function fetchPage(
+async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
+  try {
+    await import("playwright");
+  } catch {
+    throw new Error("JS mode requested but playwright is not installed");
+  }
+
+  const { chromium } = await import("playwright");
+  const executablePath = chromium.executablePath();
+
+  try {
+    const { exists } = await import("node:fs/promises");
+    await exists(executablePath);
+  } catch {
+    if (process.stdin.isTTY && !process.env.CI) {
+      const { default: readline } = await import("node:readline");
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
+      const answer = await new Promise<string>((resolve) => {
+        rl.question(
+          "Browser binaries not found. Run `bunx playwright install chromium`? (y/n) ",
+          resolve
+        );
+      });
+
+      rl.close();
+
+      if (answer.toLowerCase() === "y") {
+        console.error("Installing chromium...");
+        const { $ } = await import("bun");
+        await $`bunx playwright install chromium`;
+        return;
+      }
+
+      throw new Error(
+        "Browser binaries not found. Run `bunx playwright install chromium`"
+      );
+    }
+
+    throw new Error(
+      "Browser binaries not found. Run `bunx playwright install chromium`"
+    );
+  }
+}
+
+async function tryGetFromCache(
+  url: string,
+  mode: RenderMode,
+  options: FetchOptions
+): Promise<FetchResult | null> {
+  if (options.noCache) {
+    return null;
+  }
+
+  const cached = await readFromCache(url, {
+    enabled: !options.noCache,
+    ...options.cache,
+  });
+  if (!cached) {
+    return null;
+  }
+
+  const rawCachedStrategy = cached.strategy as
+    | "static"
+    | "headless"
+    | "unknown";
+
+  if (rawCachedStrategy === "unknown") {
+    logVerbose("Cache miss (unknown strategy, re-probing)", options.verbose);
+    return null;
+  }
+
+  const canUseCache =
+    mode === "auto" ||
+    (mode === "static" && rawCachedStrategy === "static") ||
+    (mode === "headless" && rawCachedStrategy === "headless");
+
+  if (canUseCache) {
+    logVerbose("Cache hit", options.verbose);
+    return {
+      html: cached.content,
+      finalUrl: cached.finalUrl ?? url,
+      fromCache: true,
+      strategyUsed: rawCachedStrategy,
+    };
+  }
+
+  logVerbose("Cache miss (strategy mismatch)", options.verbose);
+  return null;
+}
+
+async function fetchWithAutoDetect(
   url: string,
   options: FetchOptions
-): Promise<FetchResult> {
-  const cacheEnabled = !options.noCache;
-  if (cacheEnabled) {
-    const cached = await readFromCache(url, {
-      enabled: cacheEnabled,
-      ...options.cache,
-    });
-    if (cached) {
-      logVerbose("Cache hit", options.verbose);
-      return { finalUrl: url, fromCache: true, html: cached.content };
-    }
+): Promise<{
+  html: string;
+  finalUrl: string;
+  strategy: "static" | "headless";
+}> {
+  logVerbose("Auto-detect mode: starting static probe", options.verbose);
+
+  const staticResult = await fetchWithHttp(url, options);
+  const rawHtml = staticResult.html;
+  const finalUrl = staticResult.finalUrl;
+
+  const { extractContent } = await import("./extractor");
+  const extracted = extractContent(rawHtml, {
+    baseUrl: finalUrl,
+    raw: options.raw,
+  });
+  const extractedHtml = extracted.html;
+
+  const detection = await detectNeedForBrowser(rawHtml, extractedHtml, {
+    verbose: options.verbose,
+    raw: options.raw,
+  });
+
+  if (detection.shouldFallback) {
+    logVerbose(
+      `Auto-detect: ${detection.reason}, falling back to headless`,
+      options.verbose
+    );
+    await ensureBrowserInstalled(options.verbose);
+    const browserResult = await fetchWithBrowser(url, options);
+    return {
+      html: browserResult.html,
+      finalUrl: browserResult.finalUrl,
+      strategy: "headless",
+    };
   }
 
   logVerbose(
-    `Fetching ${url} ${options.useJs ? "(headless browser)" : "(http)"}`,
+    "Auto-detect: content is sufficient, using static",
     options.verbose
   );
-  const result = options.useJs
-    ? await fetchWithBrowser(url, options)
-    : await fetchWithHttp(url, options);
+  return { html: rawHtml, finalUrl, strategy: "static" };
+}
 
-  if (cacheEnabled) {
-    await writeToCache(url, result.html, {
-      enabled: cacheEnabled,
+async function fetchWithMode(
+  url: string,
+  mode: RenderMode,
+  options: FetchOptions
+): Promise<{
+  html: string;
+  finalUrl: string;
+  strategy: "static" | "headless";
+}> {
+  if (mode === "static") {
+    const result = await fetchWithHttp(url, options);
+    return { html: result.html, finalUrl: result.finalUrl, strategy: "static" };
+  }
+
+  if (mode === "headless") {
+    await ensureBrowserInstalled(options.verbose);
+    const result = await fetchWithBrowser(url, options);
+    return {
+      html: result.html,
+      finalUrl: result.finalUrl,
+      strategy: "headless",
+    };
+  }
+
+  return fetchWithAutoDetect(url, options);
+}
+
+export async function orchestrateFetch(
+  url: string,
+  mode: RenderMode,
+  options: FetchOptions
+): Promise<FetchResult> {
+  const cached = await tryGetFromCache(url, mode, options);
+  if (cached) {
+    return cached;
+  }
+
+  const { html, finalUrl, strategy } = await fetchWithMode(url, mode, options);
+
+  if (!options.noCache) {
+    await writeToCache(url, html, finalUrl, strategy, {
+      enabled: !options.noCache,
       ...options.cache,
     });
   }
 
-  return result;
+  return { html, finalUrl, fromCache: false, strategyUsed: strategy };
+}
+
+export function fetchPage(
+  url: string,
+  options: FetchOptions
+): Promise<FetchResult> {
+  const mode = options.mode ?? "auto";
+  return orchestrateFetch(url, mode, options);
 }

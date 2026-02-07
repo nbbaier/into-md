@@ -13,6 +13,7 @@ const DEFAULT_TIMEOUT = 30_000;
 interface CliOptions {
   output?: string;
   js?: boolean;
+  noJs?: boolean;
   raw?: boolean;
   cookies?: string;
   userAgent?: string;
@@ -35,15 +36,32 @@ async function run(url: string, options: CliOptions) {
     console.error("Starting into-md…");
   }
 
+  let mode: "auto" | "static" | "headless";
+  if (options.js === true) {
+    mode = "headless";
+  } else if (options.js === false) {
+    mode = "static";
+  } else {
+    mode = "auto";
+  }
+
   const fetchResult = await fetchPage(url, {
     cookiesPath: options.cookies,
     encoding: options.encoding,
     noCache: options.noCache,
     timeoutMs: options.timeout ?? DEFAULT_TIMEOUT,
-    useJs: options.js,
+    mode,
     userAgent: options.userAgent,
     verbose: options.verbose,
   });
+
+  let strategyLabel: string;
+  if (mode === "auto") {
+    strategyLabel = `auto>${fetchResult.strategyUsed}`;
+  } else {
+    strategyLabel = fetchResult.strategyUsed ?? "unknown";
+  }
+  console.error(`Strategy: ${strategyLabel}`);
 
   const extracted = extractContent(fetchResult.html, {
     baseUrl: fetchResult.finalUrl,
@@ -63,6 +81,7 @@ async function run(url: string, options: CliOptions) {
   const frontmatter = buildFrontmatter({
     ...extracted.metadata,
     source: fetchResult.finalUrl,
+    strategy: strategyLabel,
   });
 
   const output = `${frontmatter}\n\n${markdown}`.trim();
@@ -90,7 +109,8 @@ function buildProgram() {
     .description("Fetch a web page and convert its content to markdown.")
     .argument("<url>", "URL to fetch")
     .option("-o, --output <file>", "Write output to file instead of stdout")
-    .option("--js", "Use headless browser (Playwright) for JS-rendered content")
+    .option("--js", "Force headless browser rendering")
+    .option("--no-js", "Force static HTTP fetch (no browser)")
     .option("--raw", "Skip content extraction, convert entire HTML")
     .option(
       "--cookies <file>",

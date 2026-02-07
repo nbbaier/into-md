@@ -10,8 +10,10 @@ export interface CacheOptions {
 
 export interface CachedResponse {
   url: string;
+  finalUrl: string;
   fetchedAt: number;
   content: string;
+  strategy: "static" | "headless" | "unknown";
 }
 
 const defaultCacheDir = join(
@@ -47,7 +49,17 @@ export async function readFromCache(
       readFile(target, "utf8"),
       stat(target),
     ]);
-    const payload = JSON.parse(file) as CachedResponse;
+    const payload = JSON.parse(file) as CachedResponse & {
+      finalUrl?: string;
+      strategy?: string;
+    };
+
+    const finalUrl = payload.finalUrl ?? payload.url;
+    const strategy = (payload.strategy ?? "unknown") as
+      | "static"
+      | "headless"
+      | "unknown";
+
     const isFresh = info.mtimeMs + ttlMs > Date.now();
     if (!isFresh) {
       return null;
@@ -55,7 +67,7 @@ export async function readFromCache(
     if (payload.url !== url) {
       return null;
     }
-    return payload;
+    return { ...payload, finalUrl, strategy };
   } catch {
     return null;
   }
@@ -64,6 +76,8 @@ export async function readFromCache(
 export async function writeToCache(
   url: string,
   content: string,
+  finalUrl: string,
+  strategy: "static" | "headless",
   options?: Partial<CacheOptions>
 ): Promise<void> {
   const { enabled = true, cacheDir = defaultCacheDir } = options ?? {};
@@ -74,6 +88,12 @@ export async function writeToCache(
 
   const target = buildCachePath(url, cacheDir);
   await mkdir(dirname(target), { recursive: true });
-  const payload: CachedResponse = { content, fetchedAt: Date.now(), url };
+  const payload: CachedResponse = {
+    url,
+    finalUrl,
+    content,
+    fetchedAt: Date.now(),
+    strategy,
+  };
   await writeFile(target, JSON.stringify(payload, null, 2), "utf8");
 }
