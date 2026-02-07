@@ -7,7 +7,6 @@ export type RenderMode = "auto" | "static" | "headless";
 
 export interface FetchOptions {
   mode?: RenderMode;
-  useJs?: boolean;
   cookiesPath?: string;
   userAgent?: string;
   encoding?: string;
@@ -22,7 +21,7 @@ export interface FetchResult {
   html: string;
   finalUrl: string;
   fromCache: boolean;
-  strategyUsed?: "static" | "headless";
+  strategyUsed: "static" | "headless";
 }
 
 interface CookieRecord {
@@ -32,6 +31,10 @@ interface CookieRecord {
   path: string;
   secure: boolean;
   expires: number;
+}
+
+interface InternalFetchResult extends FetchResult {
+  contentType?: string;
 }
 
 const DEFAULT_USER_AGENT =
@@ -118,7 +121,7 @@ function parseCookiesFile(cookiesPath?: string): {
 async function fetchWithHttp(
   url: string,
   options: FetchOptions
-): Promise<FetchResult> {
+): Promise<InternalFetchResult> {
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
@@ -147,10 +150,17 @@ async function fetchWithHttp(
     }
 
     const finalUrl = response.url;
+    const contentType = response.headers.get("Content-Type") ?? undefined;
     const buffer = await response.arrayBuffer();
     const decoder = new TextDecoder(options.encoding);
     const html = decoder.decode(buffer);
-    return { finalUrl, fromCache: false, html };
+    return {
+      contentType,
+      finalUrl,
+      fromCache: false,
+      html,
+      strategyUsed: "static",
+    };
   } catch (error) {
     const prefix =
       error instanceof Error && error.name === "AbortError"
@@ -215,28 +225,26 @@ async function fetchWithBrowser(
   const finalUrl = page.url();
 
   await browser.close();
-  return { finalUrl, fromCache: false, html };
+  return { finalUrl, fromCache: false, html, strategyUsed: "headless" };
 }
 
 async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
+  let pw: typeof import("playwright");
   try {
-    await import("playwright");
+    pw = await import("playwright");
   } catch {
     throw new Error("JS mode requested but playwright is not installed");
   }
 
-  const { chromium } = await import("playwright");
-  const executablePath = chromium.executablePath();
-
   try {
-    const { exists } = await import("node:fs/promises");
-    await exists(executablePath);
+    const browser = await pw.chromium.launch({ headless: true });
+    await browser.close();
   } catch {
     if (process.stdin.isTTY && !process.env.CI) {
-      const { default: readline } = await import("node:readline");
+      const readline = await import("node:readline");
       const rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout,
+        output: process.stderr,
       });
 
       const answer = await new Promise<string>((resolve) => {
@@ -312,6 +320,8 @@ async function tryGetFromCache(
   return null;
 }
 
+const HTML_CONTENT_TYPE_RE = /text\/html|application\/xhtml\+xml/i;
+
 async function fetchWithAutoDetect(
   url: string,
   options: FetchOptions
@@ -326,6 +336,17 @@ async function fetchWithAutoDetect(
   const rawHtml = staticResult.html;
   const finalUrl = staticResult.finalUrl;
 
+  if (
+    staticResult.contentType &&
+    !HTML_CONTENT_TYPE_RE.test(staticResult.contentType)
+  ) {
+    logVerbose(
+      "Auto-detect: non-HTML content type, using static",
+      options.verbose
+    );
+    return { html: rawHtml, finalUrl, strategy: "static" };
+  }
+
   const { extractContent } = await import("./extractor");
   const extracted = extractContent(rawHtml, {
     baseUrl: finalUrl,
@@ -333,7 +354,7 @@ async function fetchWithAutoDetect(
   });
   const extractedHtml = extracted.html;
 
-  const detection = await detectNeedForBrowser(rawHtml, extractedHtml, {
+  const detection = detectNeedForBrowser(rawHtml, extractedHtml, {
     verbose: options.verbose,
     raw: options.raw,
   });

@@ -15,6 +15,7 @@ const STAGE_2_STRUCTURAL_TAGS = [
   "h6",
 ];
 const SPA_ROOT_IDS = ["root", "app", "__next", "__nuxt", "__svelte"];
+const LOADING_INDICATORS = ["loading", "loading..."];
 
 function getBodyTextCount(html: string): number {
   const dom = new JSDOM(html);
@@ -29,7 +30,8 @@ function getBodyTextCount(html: string): number {
     el.remove();
   }
 
-  return clone.textContent?.trim().length ?? 0;
+  const text = clone.textContent ?? "";
+  return text.replace(/\s+/g, " ").trim().length;
 }
 
 function isCookieBannerWrapper(element: Element | null): boolean {
@@ -59,6 +61,27 @@ function isCookieBannerWrapper(element: Element | null): boolean {
   return false;
 }
 
+function isLoadingIndicator(text: string): boolean {
+  return LOADING_INDICATORS.includes(text.trim().toLowerCase());
+}
+
+function hasMeaningfulChildren(element: HTMLElement): boolean {
+  for (const child of Array.from(element.children)) {
+    const tag = child.tagName.toLowerCase();
+    if (tag === "script" || tag === "style") {
+      continue;
+    }
+    const childText = child.textContent?.trim() ?? "";
+    if (childText.length === 0) {
+      return true;
+    }
+    if (!isLoadingIndicator(childText)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isEmptyRootDiv(html: string): boolean {
   const dom = new JSDOM(html);
   const { document } = dom.window;
@@ -74,14 +97,12 @@ function isEmptyRootDiv(html: string): boolean {
       el.remove();
     }
 
-    const textContent = clone.textContent?.trim() ?? "";
-    const hasNonEmptyChildren = Array.from(clone.children).some(
-      (child) =>
-        !["script", "style"].includes(child.tagName.toLowerCase()) &&
-        (child.textContent?.trim().length ?? 0) > 0
-    );
+    if (hasMeaningfulChildren(clone)) {
+      continue;
+    }
 
-    if (!hasNonEmptyChildren && textContent.length < STAGE_1_BODY_TEXT_MIN) {
+    const textContent = clone.textContent?.trim() ?? "";
+    if (textContent.length === 0 || isLoadingIndicator(textContent)) {
       return true;
     }
   }

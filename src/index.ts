@@ -13,7 +13,7 @@ const DEFAULT_TIMEOUT = 30_000;
 interface CliOptions {
   output?: string;
   js?: boolean;
-  noJs?: boolean;
+
   raw?: boolean;
   cookies?: string;
   userAgent?: string;
@@ -51,15 +51,16 @@ async function run(url: string, options: CliOptions) {
     noCache: options.noCache,
     timeoutMs: options.timeout ?? DEFAULT_TIMEOUT,
     mode,
+    raw: options.raw,
     userAgent: options.userAgent,
     verbose: options.verbose,
   });
 
   let strategyLabel: string;
   if (mode === "auto") {
-    strategyLabel = `auto>${fetchResult.strategyUsed}`;
+    strategyLabel = `auto > ${fetchResult.strategyUsed}`;
   } else {
-    strategyLabel = fetchResult.strategyUsed ?? "unknown";
+    strategyLabel = fetchResult.strategyUsed;
   }
   console.error(`Strategy: ${strategyLabel}`);
 
@@ -141,6 +142,14 @@ function buildProgram() {
 async function main() {
   const program = buildProgram();
   program.parse(process.argv);
+
+  const rawArgs = process.argv.slice(2);
+  if (rawArgs.includes("--js") && rawArgs.includes("--no-js")) {
+    console.error("Cannot use --js and --no-js together");
+    process.exitCode = 1;
+    return;
+  }
+
   const [url] = program.args;
   if (!url) {
     program.help();
