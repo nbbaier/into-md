@@ -199,42 +199,47 @@ async function fetchWithBrowser(
 
   const { playwrightCookies } = parseCookiesFile(options.cookiesPath);
   const browser = await playwright.chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
-  });
-
-  if (playwrightCookies.length) {
-    await context.addCookies(
-      playwrightCookies.map((cookie) => ({
-        ...cookie,
-        httpOnly: false,
-        sameSite: "Lax" as const,
-      }))
-    );
-  }
-
-  const page = await context.newPage();
-  await page.goto(url, {
-    timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    waitUntil: "load",
-  });
-
-  const networkidleTimeout = Math.max(
-    5000,
-    Math.floor((options.timeoutMs ?? DEFAULT_TIMEOUT_MS) / 2)
-  );
-
   try {
-    await page.waitForLoadState("networkidle", { timeout: networkidleTimeout });
-  } catch {
-    // Ignore timeout - networkidle may not be reached, continue with page content
+    const context = await browser.newContext({
+      userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
+    });
+
+    if (playwrightCookies.length) {
+      await context.addCookies(
+        playwrightCookies.map((cookie) => ({
+          ...cookie,
+          httpOnly: false,
+          sameSite: "Lax" as const,
+        }))
+      );
+    }
+
+    const page = await context.newPage();
+    await page.goto(url, {
+      timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      waitUntil: "load",
+    });
+
+    const networkidleTimeout = Math.max(
+      5000,
+      Math.floor((options.timeoutMs ?? DEFAULT_TIMEOUT_MS) / 2)
+    );
+
+    try {
+      await page.waitForLoadState("networkidle", {
+        timeout: networkidleTimeout,
+      });
+    } catch {
+      // Ignore timeout - networkidle may not be reached, continue with page content
+    }
+
+    const html = await page.content();
+    const finalUrl = page.url();
+
+    return { finalUrl, fromCache: false, html, strategyUsed: "headless" };
+  } finally {
+    await browser.close();
   }
-
-  const html = await page.content();
-  const finalUrl = page.url();
-
-  await browser.close();
-  return { finalUrl, fromCache: false, html, strategyUsed: "headless" };
 }
 
 async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
