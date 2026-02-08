@@ -3,7 +3,7 @@ import TurndownService from "turndown";
 
 import { getBodyHtml, toAbsoluteUrl } from "./utils";
 
-export interface ConvertOptions {
+interface ConvertOptions {
   baseUrl: string;
   stripLinks?: boolean;
 }

@@ -1,4 +1,4 @@
-export interface FrontmatterInput {
+interface FrontmatterInput {
   title?: string;
   description?: string;
   author?: string;

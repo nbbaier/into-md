@@ -8,7 +8,7 @@ export interface CacheOptions {
   cacheDir?: string;
 }
 
-export interface CachedResponse {
+interface CachedResponse {
   url: string;
   finalUrl: string;
   fetchedAt: number;

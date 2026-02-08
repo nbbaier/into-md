@@ -5,9 +5,9 @@ import { type CacheOptions, readFromCache, writeToCache } from "./cache";
 
 let browserVerified = false;
 
-export type RenderMode = "auto" | "static" | "headless";
+type RenderMode = "auto" | "static" | "headless";
 
-export interface FetchOptions {
+interface FetchOptions {
   mode?: RenderMode;
   cookiesPath?: string;
   userAgent?: string;
@@ -21,7 +21,7 @@ export interface FetchOptions {
   logBuffer?: string[];
 }
 
-export interface FetchResult {
+interface FetchResult {
   html: string;
   finalUrl: string;
   fromCache: boolean;
@@ -442,7 +442,7 @@ async function fetchWithMode(
   return fetchWithAutoDetect(url, options);
 }
 
-export async function orchestrateFetch(
+async function orchestrateFetch(
   url: string,
   mode: RenderMode,
   options: FetchOptions

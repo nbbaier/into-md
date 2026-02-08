@@ -1,13 +1,13 @@
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 
-export interface ExtractOptions {
+interface ExtractOptions {
   raw?: boolean;
   excludeSelectors?: string[];
   baseUrl: string;
 }
 
-export interface ExtractedContent {
+interface ExtractedContent {
   html: string;
   metadata: {
     title?: string;

@@ -117,7 +117,7 @@ function hasNoscriptAndEmptyBody(html: string): boolean {
   }
 
   let hasQualifyingNoscript = false;
-  for (const noscript of noscripts) {
+  for (const noscript of Array.from(noscripts)) {
     const noscriptText = noscript.textContent?.toLowerCase() ?? "";
     if (!noscriptText.includes("javascript")) {
       continue;
@@ -155,12 +155,12 @@ function isContentTooSparse(extractedHtml: string): boolean {
   return !hasStructuralTags;
 }
 
-export interface DetectionResult {
+interface DetectionResult {
   shouldFallback: boolean;
   reason?: string;
 }
 
-export type DetectionStage = "stage1" | "stage2" | "both";
+type DetectionStage = "stage1" | "stage2" | "both";
 
 export function detectNeedForBrowser(
   rawHtml: string,
