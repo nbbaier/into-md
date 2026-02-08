@@ -3,6 +3,8 @@ import { basename } from "node:path";
 import { detectNeedForBrowser } from "./auto-detect";
 import { type CacheOptions, readFromCache, writeToCache } from "./cache";
 
+let browserVerified = false;
+
 export type RenderMode = "auto" | "static" | "headless";
 
 export interface FetchOptions {
@@ -236,6 +238,10 @@ async function fetchWithBrowser(
 }
 
 async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
+  if (browserVerified) {
+    return;
+  }
+
   let pw: typeof import("playwright");
   try {
     pw = await import("playwright");
@@ -246,6 +252,7 @@ async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
   try {
     const browser = await pw.chromium.launch({ headless: true });
     await browser.close();
+    browserVerified = true;
   } catch {
     if (process.stdin.isTTY && !process.env.CI) {
       const readline = await import("node:readline");
@@ -267,6 +274,7 @@ async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
         console.error("Installing chromium...");
         const { $ } = await import("bun");
         await $`bunx playwright install chromium`;
+        browserVerified = true;
         return;
       }
 
