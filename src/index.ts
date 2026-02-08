@@ -32,10 +32,6 @@ async function run(url: string, options: CliOptions) {
       .map((selector) => selector.trim())
       .filter(Boolean) ?? [];
 
-  if (options.verbose) {
-    console.error("Starting into-md…");
-  }
-
   let mode: "auto" | "static" | "headless";
   if (options.js === true) {
     mode = "headless";
@@ -45,6 +41,30 @@ async function run(url: string, options: CliOptions) {
     mode = "auto";
   }
 
+  let strategyLabel = "";
+  let frontmatterStrategy = "";
+  const verboseBuffer: string[] = options.verbose ? ["Starting into-md…"] : [];
+  let fetched = false;
+  const strategyResolver = (strategyUsed: "static" | "headless") => {
+    if (fetched) {
+      return;
+    }
+    fetched = true;
+    if (mode === "auto") {
+      strategyLabel = `auto > ${strategyUsed}`;
+      frontmatterStrategy = `auto>${strategyUsed}`;
+    } else {
+      strategyLabel = strategyUsed;
+      frontmatterStrategy = strategyUsed;
+    }
+    console.error(`Strategy: ${strategyLabel}`);
+    if (options.verbose && verboseBuffer.length > 0) {
+      for (const line of verboseBuffer) {
+        console.error(line);
+      }
+      verboseBuffer.length = 0;
+    }
+  };
   const fetchResult = await fetchPage(url, {
     cookiesPath: options.cookies,
     encoding: options.encoding,
@@ -54,15 +74,10 @@ async function run(url: string, options: CliOptions) {
     raw: options.raw,
     userAgent: options.userAgent,
     verbose: options.verbose,
+    logBuffer: options.verbose ? verboseBuffer : undefined,
+    onStrategyResolved: strategyResolver,
   });
-
-  let strategyLabel: string;
-  if (mode === "auto") {
-    strategyLabel = `auto > ${fetchResult.strategyUsed}`;
-  } else {
-    strategyLabel = fetchResult.strategyUsed;
-  }
-  console.error(`Strategy: ${strategyLabel}`);
+  strategyResolver(fetchResult.strategyUsed);
 
   const extracted = extractContent(fetchResult.html, {
     baseUrl: fetchResult.finalUrl,
@@ -82,7 +97,7 @@ async function run(url: string, options: CliOptions) {
   const frontmatter = buildFrontmatter({
     ...extracted.metadata,
     source: fetchResult.finalUrl,
-    strategy: strategyLabel,
+    strategy: frontmatterStrategy,
   });
 
   const output = `${frontmatter}\n\n${markdown}`.trim();

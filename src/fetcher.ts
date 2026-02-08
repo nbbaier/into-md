@@ -15,6 +15,8 @@ export interface FetchOptions {
   noCache?: boolean;
   verbose?: boolean;
   raw?: boolean;
+  onStrategyResolved?: (strategy: "static" | "headless") => void;
+  logBuffer?: string[];
 }
 
 export interface FetchResult {
@@ -42,10 +44,15 @@ const DEFAULT_USER_AGENT =
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-const logVerbose = (message: string, verbose?: boolean): void => {
-  if (verbose) {
-    console.error(message);
+const logVerbose = (message: string, options?: FetchOptions): void => {
+  if (!options?.verbose) {
+    return;
   }
+  if (options.logBuffer) {
+    options.logBuffer.push(message);
+    return;
+  }
+  console.error(message);
 };
 
 function parseNetscapeCookieLine(
@@ -297,7 +304,7 @@ async function tryGetFromCache(
     | "unknown";
 
   if (rawCachedStrategy === "unknown") {
-    logVerbose("Cache miss (unknown strategy, re-probing)", options.verbose);
+    logVerbose("Cache miss (unknown strategy, re-probing)", options);
     return null;
   }
 
@@ -307,7 +314,7 @@ async function tryGetFromCache(
     (mode === "headless" && rawCachedStrategy === "headless");
 
   if (canUseCache) {
-    logVerbose("Cache hit", options.verbose);
+    logVerbose("Cache hit", options);
     return {
       html: cached.content,
       finalUrl: cached.finalUrl ?? url,
@@ -316,7 +323,7 @@ async function tryGetFromCache(
     };
   }
 
-  logVerbose("Cache miss (strategy mismatch)", options.verbose);
+  logVerbose("Cache miss (strategy mismatch)", options);
   return null;
 }
 
@@ -330,7 +337,7 @@ async function fetchWithAutoDetect(
   finalUrl: string;
   strategy: "static" | "headless";
 }> {
-  logVerbose("Auto-detect mode: starting static probe", options.verbose);
+  logVerbose("Auto-detect mode: starting static probe", options);
 
   const staticResult = await fetchWithHttp(url, options);
   const rawHtml = staticResult.html;
@@ -340,29 +347,20 @@ async function fetchWithAutoDetect(
     staticResult.contentType &&
     !HTML_CONTENT_TYPE_RE.test(staticResult.contentType)
   ) {
-    logVerbose(
-      "Auto-detect: non-HTML content type, using static",
-      options.verbose
-    );
+    logVerbose("Auto-detect: non-HTML content type, using static", options);
     return { html: rawHtml, finalUrl, strategy: "static" };
   }
 
-  const { extractContent } = await import("./extractor");
-  const extracted = extractContent(rawHtml, {
-    baseUrl: finalUrl,
-    raw: options.raw,
-  });
-  const extractedHtml = extracted.html;
-
-  const detection = detectNeedForBrowser(rawHtml, extractedHtml, {
+  const stage1 = detectNeedForBrowser(rawHtml, null, {
     verbose: options.verbose,
     raw: options.raw,
+    stage: "stage1",
   });
 
-  if (detection.shouldFallback) {
+  if (stage1.shouldFallback) {
     logVerbose(
-      `Auto-detect: ${detection.reason}, falling back to headless`,
-      options.verbose
+      `Auto-detect: ${stage1.reason}, falling back to headless`,
+      options
     );
     await ensureBrowserInstalled(options.verbose);
     const browserResult = await fetchWithBrowser(url, options);
@@ -373,10 +371,34 @@ async function fetchWithAutoDetect(
     };
   }
 
-  logVerbose(
-    "Auto-detect: content is sufficient, using static",
-    options.verbose
-  );
+  const { extractContent } = await import("./extractor");
+  const extracted = extractContent(rawHtml, {
+    baseUrl: finalUrl,
+    raw: options.raw,
+  });
+  const extractedHtml = extracted.html;
+
+  const stage2 = detectNeedForBrowser(rawHtml, extractedHtml, {
+    verbose: options.verbose,
+    raw: options.raw,
+    stage: "stage2",
+  });
+
+  if (stage2.shouldFallback) {
+    logVerbose(
+      `Auto-detect: ${stage2.reason}, falling back to headless`,
+      options
+    );
+    await ensureBrowserInstalled(options.verbose);
+    const browserResult = await fetchWithBrowser(url, options);
+    return {
+      html: browserResult.html,
+      finalUrl: browserResult.finalUrl,
+      strategy: "headless",
+    };
+  }
+
+  logVerbose("Auto-detect: content is sufficient, using static", options);
   return { html: rawHtml, finalUrl, strategy: "static" };
 }
 
@@ -395,6 +417,19 @@ async function fetchWithMode(
   }
 
   if (mode === "headless") {
+    const probe = await fetchWithHttp(url, {
+      ...options,
+      timeoutMs: options.timeoutMs ? Math.min(options.timeoutMs, 5000) : 5000,
+    });
+    if (probe.contentType && !HTML_CONTENT_TYPE_RE.test(probe.contentType)) {
+      logVerbose("Headless mode: non-HTML content type, using static", options);
+      return {
+        html: probe.html,
+        finalUrl: probe.finalUrl,
+        strategy: "static",
+      };
+    }
+
     await ensureBrowserInstalled(options.verbose);
     const result = await fetchWithBrowser(url, options);
     return {
@@ -414,10 +449,12 @@ export async function orchestrateFetch(
 ): Promise<FetchResult> {
   const cached = await tryGetFromCache(url, mode, options);
   if (cached) {
+    options.onStrategyResolved?.(cached.strategyUsed);
     return cached;
   }
 
   const { html, finalUrl, strategy } = await fetchWithMode(url, mode, options);
+  options.onStrategyResolved?.(strategy);
 
   if (!options.noCache) {
     await writeToCache(url, html, finalUrl, strategy, {

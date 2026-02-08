@@ -157,24 +157,36 @@ export interface DetectionResult {
   reason?: string;
 }
 
+export type DetectionStage = "stage1" | "stage2" | "both";
+
 export function detectNeedForBrowser(
   rawHtml: string,
-  extractedHtml: string,
-  options: { verbose?: boolean; raw?: boolean } = {}
+  extractedHtml?: string | null,
+  options: { verbose?: boolean; raw?: boolean; stage?: DetectionStage } = {}
 ): DetectionResult {
-  if (isEmptyRootDiv(rawHtml)) {
-    return { shouldFallback: true, reason: "Empty SPA root div detected" };
+  const stage = options.stage ?? "both";
+
+  if (stage !== "stage2") {
+    if (isEmptyRootDiv(rawHtml)) {
+      return { shouldFallback: true, reason: "Empty SPA root div detected" };
+    }
+
+    if (hasNoscriptAndEmptyBody(rawHtml)) {
+      return {
+        shouldFallback: true,
+        reason: "Noscript with javascript and sparse body",
+      };
+    }
   }
 
-  if (hasNoscriptAndEmptyBody(rawHtml)) {
-    return {
-      shouldFallback: true,
-      reason: "Noscript with javascript and sparse body",
-    };
-  }
-
-  if (!options.raw && isContentTooSparse(extractedHtml)) {
-    return { shouldFallback: true, reason: "Extracted content is too sparse" };
+  if (stage !== "stage1" && !options.raw) {
+    const hasExtracted = extractedHtml !== undefined && extractedHtml !== null;
+    if (hasExtracted && isContentTooSparse(extractedHtml)) {
+      return {
+        shouldFallback: true,
+        reason: "Extracted content is too sparse",
+      };
+    }
   }
 
   return { shouldFallback: false };

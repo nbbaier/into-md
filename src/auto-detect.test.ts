@@ -17,7 +17,9 @@ describe("getBodyTextCount", () => {
   it("handles empty body", () => {
     const html = "<html><body></body></html>";
     const extracted = "<body></body>";
-    const detection = detectNeedForBrowser(html, extracted);
+    const detection = detectNeedForBrowser(html, extracted, {
+      stage: "stage1",
+    });
     expect(detection.shouldFallback).toBe(true);
   });
 });
@@ -85,7 +87,9 @@ describe("hasNoscriptAndEmptyBody", () => {
       </body></html>
     `;
     const extracted = `<body>${"a".repeat(250)}</body>`;
-    const detection = detectNeedForBrowser(html, extracted);
+    const detection = detectNeedForBrowser(html, extracted, {
+      stage: "stage1",
+    });
     expect(detection.shouldFallback).toBe(false);
   });
 
@@ -99,7 +103,9 @@ describe("hasNoscriptAndEmptyBody", () => {
     `;
     const extracted =
       '<body><div class="cookie-banner"><p>Content after extraction</p></div></body>';
-    const detection = detectNeedForBrowser(html, extracted);
+    const detection = detectNeedForBrowser(html, extracted, {
+      stage: "stage1",
+    });
     expect(detection.shouldFallback).toBe(false);
   });
 });
@@ -108,7 +114,9 @@ describe("isContentTooSparse", () => {
   it("triggers when content is short and lacks structure", () => {
     const html = "<html><body>Short</body></html>";
     const extractedHtml = "<div>Short</div>";
-    const detection = detectNeedForBrowser(html, extractedHtml);
+    const detection = detectNeedForBrowser(html, extractedHtml, {
+      stage: "stage2",
+    });
     expect(detection.shouldFallback).toBe(true);
     expect(detection.reason).toContain("too sparse");
   });
@@ -116,14 +124,18 @@ describe("isContentTooSparse", () => {
   it("passes when content is short but has structure", () => {
     const html = "<html><body>Short</body></html>";
     const extractedHtml = "<p>Short</p>";
-    const detection = detectNeedForBrowser(html, extractedHtml);
+    const detection = detectNeedForBrowser(html, extractedHtml, {
+      stage: "stage2",
+    });
     expect(detection.shouldFallback).toBe(false);
   });
 
   it("passes when content is long enough", () => {
     const html = `<html><body>${"a".repeat(250)}</body></html>`;
     const extractedHtml = `<div>${"a".repeat(250)}</div>`;
-    const detection = detectNeedForBrowser(html, extractedHtml);
+    const detection = detectNeedForBrowser(html, extractedHtml, {
+      stage: "stage2",
+    });
     expect(detection.shouldFallback).toBe(false);
   });
 });
@@ -149,7 +161,9 @@ describe("detectNeedForBrowser", () => {
   it("falls back to browser on sparse extracted content", () => {
     const html = "<html><body>Short</body></html>";
     const extractedHtml = "<div>Short</div>";
-    const detection = detectNeedForBrowser(html, extractedHtml);
+    const detection = detectNeedForBrowser(html, extractedHtml, {
+      stage: "stage2",
+    });
     expect(detection.shouldFallback).toBe(true);
   });
 
@@ -164,6 +178,7 @@ describe("detectNeedForBrowser", () => {
     const extractedHtml = "<div>Short</div>";
     const detection = detectNeedForBrowser(html, extractedHtml, {
       raw: true,
+      stage: "stage2",
     });
     expect(detection.shouldFallback).toBe(false);
   });
