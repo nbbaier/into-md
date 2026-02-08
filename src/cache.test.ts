@@ -22,7 +22,7 @@ describe("cache backward compatibility", () => {
       content: "<html><body>Old content</body></html>",
     };
 
-    const hash = require("node:crypto")
+    const hash = (await import("node:crypto"))
       .createHash("sha256")
       .update(url)
       .digest("hex");
