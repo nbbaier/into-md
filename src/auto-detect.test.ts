@@ -14,13 +14,12 @@ describe("getBodyTextCount", () => {
     expect(detection.shouldFallback).toBe(false);
   });
 
-  it("handles empty body", () => {
+  it("does not trigger on empty body without SPA signals", () => {
     const html = "<html><body></body></html>";
-    const extracted = "<body></body>";
-    const detection = detectNeedForBrowser(html, extracted, {
+    const detection = detectNeedForBrowser(html, null, {
       stage: "stage1",
     });
-    expect(detection.shouldFallback).toBe(true);
+    expect(detection.shouldFallback).toBe(false);
   });
 });
 
@@ -63,6 +62,21 @@ describe("isEmptyRootDiv", () => {
     const html = "<html><body><p>Regular content</p></body></html>";
     const detection = detectNeedForBrowser(html, html);
     expect(detection.shouldFallback).toBe(false);
+  });
+
+  it("treats empty nested div inside root as not meaningful", () => {
+    const html = '<html><body><div id="root"><div></div></div></body></html>';
+    const detection = detectNeedForBrowser(html, html);
+    expect(detection.shouldFallback).toBe(true);
+    expect(detection.reason).toContain("Empty SPA root");
+  });
+
+  it("treats div with only whitespace text as not meaningful", () => {
+    const html =
+      '<html><body><div id="app"><span>   </span></div></body></html>';
+    const detection = detectNeedForBrowser(html, html);
+    expect(detection.shouldFallback).toBe(true);
+    expect(detection.reason).toContain("Empty SPA root");
   });
 });
 
@@ -107,6 +121,32 @@ describe("hasNoscriptAndEmptyBody", () => {
       stage: "stage1",
     });
     expect(detection.shouldFallback).toBe(false);
+  });
+
+  it("triggers when qualifying noscript is not the first one", () => {
+    const html = `
+      <html><body>
+        <noscript>Please enable cookies</noscript>
+        <noscript>JavaScript is required</noscript>
+      </body></html>
+    `;
+    const detection = detectNeedForBrowser(html, null, { stage: "stage1" });
+    expect(detection.shouldFallback).toBe(true);
+    expect(detection.reason).toContain("Noscript");
+  });
+
+  it("skips cookie-banner noscript but triggers on a later qualifying one", () => {
+    const html = `
+      <html><body>
+        <div class="consent-banner">
+          <noscript>JavaScript is needed for consent</noscript>
+        </div>
+        <noscript>You need JavaScript to run this app</noscript>
+      </body></html>
+    `;
+    const detection = detectNeedForBrowser(html, null, { stage: "stage1" });
+    expect(detection.shouldFallback).toBe(true);
+    expect(detection.reason).toContain("Noscript");
   });
 });
 

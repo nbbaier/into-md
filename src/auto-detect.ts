@@ -72,10 +72,7 @@ function hasMeaningfulChildren(element: HTMLElement): boolean {
       continue;
     }
     const childText = child.textContent?.trim() ?? "";
-    if (childText.length === 0) {
-      return true;
-    }
-    if (!isLoadingIndicator(childText)) {
+    if (childText.length > 0 && !isLoadingIndicator(childText)) {
       return true;
     }
   }
@@ -114,26 +111,32 @@ function hasNoscriptAndEmptyBody(html: string): boolean {
   const dom = new JSDOM(html);
   const { document } = dom.window;
 
-  const noscript = document.querySelector("noscript");
-  if (!noscript) {
+  const noscripts = document.querySelectorAll("noscript");
+  if (noscripts.length === 0) {
     return false;
   }
 
-  const noscriptText = noscript.textContent?.toLowerCase() ?? "";
-  if (!noscriptText.includes("javascript")) {
-    return false;
+  let hasQualifyingNoscript = false;
+  for (const noscript of noscripts) {
+    const noscriptText = noscript.textContent?.toLowerCase() ?? "";
+    if (!noscriptText.includes("javascript")) {
+      continue;
+    }
+
+    if (isCookieBannerWrapper(noscript)) {
+      continue;
+    }
+
+    hasQualifyingNoscript = true;
+    break;
   }
 
-  if (isCookieBannerWrapper(noscript)) {
+  if (!hasQualifyingNoscript) {
     return false;
   }
 
   const bodyTextCount = getBodyTextCount(html);
-  if (bodyTextCount >= STAGE_1_BODY_TEXT_MIN) {
-    return false;
-  }
-
-  return true;
+  return bodyTextCount < STAGE_1_BODY_TEXT_MIN;
 }
 
 function isContentTooSparse(extractedHtml: string): boolean {

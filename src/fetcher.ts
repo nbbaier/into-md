@@ -417,19 +417,6 @@ async function fetchWithMode(
   }
 
   if (mode === "headless") {
-    const probe = await fetchWithHttp(url, {
-      ...options,
-      timeoutMs: options.timeoutMs ? Math.min(options.timeoutMs, 5000) : 5000,
-    });
-    if (probe.contentType && !HTML_CONTENT_TYPE_RE.test(probe.contentType)) {
-      logVerbose("Headless mode: non-HTML content type, using static", options);
-      return {
-        html: probe.html,
-        finalUrl: probe.finalUrl,
-        strategy: "static",
-      };
-    }
-
     await ensureBrowserInstalled(options.verbose);
     const result = await fetchWithBrowser(url, options);
     return {
