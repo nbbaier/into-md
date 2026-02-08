@@ -198,7 +198,7 @@ app.get("/", (c) =>
               <div class="mb-4 w-full border-neutral-300 border-t" />
               <div class="flex items-center justify-between">
                 <div class="text-neutral-600 text-sm">
-                  Made by{" "}
+                  Built by{" "}
                   <a
                     class="text-blue-600 text-sm hover:underline"
                     href="https://nicobaier.com"
