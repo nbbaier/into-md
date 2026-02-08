@@ -13,6 +13,7 @@ const DEFAULT_TIMEOUT = 30_000;
 interface CliOptions {
   output?: string;
   js?: boolean;
+
   raw?: boolean;
   cookies?: string;
   userAgent?: string;
@@ -31,19 +32,52 @@ async function run(url: string, options: CliOptions) {
       .map((selector) => selector.trim())
       .filter(Boolean) ?? [];
 
-  if (options.verbose) {
-    console.error("Starting into-md…");
+  let mode: "auto" | "static" | "headless";
+  if (options.js === true) {
+    mode = "headless";
+  } else if (options.js === false) {
+    mode = "static";
+  } else {
+    mode = "auto";
   }
 
+  let strategyLabel = "";
+  let frontmatterStrategy = "";
+  const verboseBuffer: string[] = options.verbose ? ["Starting into-md…"] : [];
+  let fetched = false;
+  const strategyResolver = (strategyUsed: "static" | "headless") => {
+    if (fetched) {
+      return;
+    }
+    fetched = true;
+    if (mode === "auto") {
+      strategyLabel = `auto > ${strategyUsed}`;
+      frontmatterStrategy = `auto>${strategyUsed}`;
+    } else {
+      strategyLabel = strategyUsed;
+      frontmatterStrategy = strategyUsed;
+    }
+    console.error(`Strategy: ${strategyLabel}`);
+    if (options.verbose && verboseBuffer.length > 0) {
+      for (const line of verboseBuffer) {
+        console.error(line);
+      }
+      verboseBuffer.length = 0;
+    }
+  };
   const fetchResult = await fetchPage(url, {
     cookiesPath: options.cookies,
     encoding: options.encoding,
     noCache: options.noCache,
     timeoutMs: options.timeout ?? DEFAULT_TIMEOUT,
-    useJs: options.js,
+    mode,
+    raw: options.raw,
     userAgent: options.userAgent,
     verbose: options.verbose,
+    logBuffer: options.verbose ? verboseBuffer : undefined,
+    onStrategyResolved: strategyResolver,
   });
+  strategyResolver(fetchResult.strategyUsed);
 
   const extracted = extractContent(fetchResult.html, {
     baseUrl: fetchResult.finalUrl,
@@ -63,6 +97,7 @@ async function run(url: string, options: CliOptions) {
   const frontmatter = buildFrontmatter({
     ...extracted.metadata,
     source: fetchResult.finalUrl,
+    strategy: frontmatterStrategy,
   });
 
   const output = `${frontmatter}\n\n${markdown}`.trim();
@@ -90,7 +125,8 @@ function buildProgram() {
     .description("Fetch a web page and convert its content to markdown.")
     .argument("<url>", "URL to fetch")
     .option("-o, --output <file>", "Write output to file instead of stdout")
-    .option("--js", "Use headless browser (Playwright) for JS-rendered content")
+    .option("--js", "Force headless browser rendering")
+    .option("--no-js", "Force static HTTP fetch (no browser)")
     .option("--raw", "Skip content extraction, convert entire HTML")
     .option(
       "--cookies <file>",
@@ -121,6 +157,14 @@ function buildProgram() {
 async function main() {
   const program = buildProgram();
   program.parse(process.argv);
+
+  const rawArgs = process.argv.slice(2);
+  if (rawArgs.includes("--js") && rawArgs.includes("--no-js")) {
+    console.error("Cannot use --js and --no-js together");
+    process.exitCode = 1;
+    return;
+  }
+
   const [url] = program.args;
   if (!url) {
     program.help();
