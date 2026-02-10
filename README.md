@@ -5,7 +5,7 @@ A CLI tool that fetches web pages and converts them to clean markdown, optimized
 ## Installation
 
 ```bash
-# Global install (from npm registry)
+# Global install with bun from npm
 bun add -g into-md
 # or
 npm install -g into-md

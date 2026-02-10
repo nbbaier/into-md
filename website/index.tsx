@@ -58,9 +58,11 @@ app.get("/", (c) =>
           // biome-ignore lint/security/noDangerouslySetInnerHtml: We're okay with this
           dangerouslySetInnerHTML={{
             __html: `
+   html { font-size: 15px; };
       .geist-regular { font-family: "Geist", sans-serif; font-optical-sizing: auto; font-weight: 400; font-style: normal; }
    .geist-mono { font-family: "Geist Mono", monospace; font-optical-sizing: auto; font-weight: 400; font-style: normal; }
-   .custom-box-shadow { box-shadow: 3.5px 3.5px 0px 0px #dddddd; }
+   .custom-box-shadow { box-shadow: 3.5px 3.5px 0px 0px rgb(221, 221, 221); }
+   .custom-box-shadow:hover { box-shadow: 3.5px 3.5px 0px 0px rgb(212, 212, 212); }
    `,
           }}
         />
@@ -70,25 +72,29 @@ app.get("/", (c) =>
           <main class="mx-auto flex max-w-2xl flex-col gap-8">
             <div class="flex flex-col gap-2">
               <h1 class="font-semibold text-2xl tracking-normal">into-md</h1>
-              <p class="text-neutral-600 text-sm leading-[1.75]">
+              <p class="text-neutral-600 leading-[1.75]">
                 Fetch any URL. Get clean markdown. Feed it to your LLM.
               </p>
-              <span class="geist-mono text-neutral-400 text-xs">
+              <span class="geist-mono text-neutral-400 text-sm">
                 v{version}
               </span>
             </div>
 
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-lg">Install</h2>
-              <div class="mb-2 text-neutral-600 text-sm leading-[1.75]">
-                Install globally from npm:
+              <h2 class="mb-2 font-medium text-xl">Install</h2>
+              <div class="mb-2 text-neutral-600 leading-[1.75]">
+                Global install with your package manager of choice:
               </div>
-              <pre class="geist-mono overflow-x-auto rounded border border-neutral-200 bg-neutral-50 p-3 text-[11px] leading-5">
-                <code>bun install -g into-md</code>
+              <pre class="geist-mono overflow-x-auto rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm leading-5">
+                <code class="leading-[1.5rem]">
+                  {"bun add -g into-md\n"}
+                  {"npm install -g into-md\n"}
+                  {"yarn global add into-md"}
+                </code>
               </pre>
-              <div class="mt-3 text-neutral-600 text-sm leading-[1.75]">
+              <div class="mt-3 text-neutral-600 leading-[1.75]">
                 Or use{" "}
-                <code class="geist-mono rounded border border-neutral-200 bg-neutral-50 px-1 py-0.5 text-xs">
+                <code class="geist-mono rounded-sm border border-neutral-200 bg-neutral-50 px-1 py-0.5 text-sm">
                   bunx into-md
                 </code>{" "}
                 to run without installing.
@@ -96,29 +102,29 @@ app.get("/", (c) =>
             </section>
 
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-lg">How it works</h2>
-              <div class="mb-4 text-neutral-600 text-sm leading-[1.75]">
+              <h2 class="mb-2 font-medium text-xl">How it works</h2>
+              <div class="mb-4 text-neutral-600 leading-[1.75]">
                 Pass any URL and get back clean, structured markdown ready for
                 LLM consumption. into-md auto-detects whether a page needs a
                 headless browser and falls back to Playwright if needed.
               </div>
               <div class="mx-auto">
                 <div class="my-2 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-                  <div class="custom-box-shadow w-full rounded border border-black bg-white px-4 py-2 text-center font-medium text-sm sm:w-auto">
+                  <div class="custom-box-shadow w-full rounded-md border border-black bg-white px-4 py-2 text-center font-medium text-sm sm:w-auto">
                     URL
                   </div>
                   <span class="text-lg text-neutral-400">
                     <ArrowRight />
                     <ArrowDown />
                   </span>
-                  <div class="custom-box-shadow w-full rounded border border-black bg-white px-4 py-2 text-center font-medium text-sm sm:w-auto">
+                  <div class="custom-box-shadow w-full rounded-md border border-black bg-white px-4 py-2 text-center font-medium text-sm sm:w-auto">
                     into-md
                   </div>
                   <span class="text-lg text-neutral-400">
                     <ArrowRight />
                     <ArrowDown />
                   </span>
-                  <div class="custom-box-shadow w-full rounded border border-black bg-white px-4 py-2 text-center font-medium text-sm sm:w-auto">
+                  <div class="custom-box-shadow w-full rounded-md border border-black bg-white px-4 py-2 text-center font-medium text-sm sm:w-auto">
                     clean markdown
                   </div>
                 </div>
@@ -126,32 +132,32 @@ app.get("/", (c) =>
             </section>
 
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-lg">What you get</h2>
+              <h2 class="mb-2 font-medium text-xl">What you get</h2>
               <div class="my-2 flex flex-col gap-4">
-                <div class="custom-box-shadow rounded border border-black bg-white px-4 pt-3 pb-4">
-                  <h3 class="font-medium">Smart extraction</h3>
-                  <p class="text-neutral-600 text-xs">
+                <div class="custom-box-shadow rounded-md border border-black bg-white px-4 pt-3 pb-4">
+                  <h3 class="mb-1 font-medium text-base">Smart extraction</h3>
+                  <p class="text-neutral-600 text-sm">
                     Uses readability heuristics to pull out the main content and
                     strip away navigation, ads, and clutter.
                   </p>
                 </div>
-                <div class="custom-box-shadow rounded border border-black bg-white px-4 pt-3 pb-4">
-                  <h3 class="font-medium">Auto JS detection</h3>
-                  <p class="text-neutral-600 text-xs">
+                <div class="custom-box-shadow rounded-md border border-black bg-white px-4 pt-3 pb-4">
+                  <h3 class="mb-1 font-medium text-base">Auto JS detection</h3>
+                  <p class="text-neutral-600 text-sm">
                     Automatically detects SPAs and JS-rendered pages and falls
                     back to a headless browser when needed.
                   </p>
                 </div>
-                <div class="custom-box-shadow rounded border border-black bg-white px-4 pt-3 pb-4">
-                  <h3 class="font-medium">LLM ready</h3>
-                  <p class="text-neutral-600 text-xs">
+                <div class="custom-box-shadow rounded-md border border-black bg-white px-4 pt-3 pb-4">
+                  <h3 class="mb-1 font-medium text-base">LLM ready</h3>
+                  <p class="text-neutral-600 text-sm">
                     Clean output with YAML frontmatter and semantic markdown,
                     optimized for feeding into AI context windows.
                   </p>
                 </div>
-                <div class="custom-box-shadow rounded border border-black bg-white px-4 pt-3 pb-4">
-                  <h3 class="font-medium">Well structured</h3>
-                  <p class="text-neutral-600 text-xs">
+                <div class="custom-box-shadow rounded-md border border-black bg-white px-4 pt-3 pb-4">
+                  <h3 class="mb-1 font-medium text-base">Well structured</h3>
+                  <p class="text-neutral-600 text-sm">
                     Tables converted to JSON, images preserved with context, and
                     code blocks auto-tagged for syntax highlighting.
                   </p>
@@ -160,9 +166,9 @@ app.get("/", (c) =>
             </section>
 
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-lg">Example</h2>
-              <pre class="geist-mono overflow-x-auto rounded border border-neutral-200 bg-neutral-50 p-3 text-[11px] leading-5">
-                <code>
+              <h2 class="mb-2 font-medium text-xl">Example</h2>
+              <pre class="geist-mono overflow-x-auto rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm leading-5">
+                <code class="leading-[1.5rem]">
                   {"$ into-md https://example.com/article\n\n"}
                   {"---\n"}
                   {'title: "Example Article"\n'}
@@ -178,8 +184,8 @@ app.get("/", (c) =>
             </section>
 
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-lg">Learn more</h2>
-              <p class="text-neutral-600 text-sm leading-[1.75]">
+              <h2 class="mb-2 font-medium text-xl">Learn more</h2>
+              <p class="text-base text-neutral-600 leading-[1.75]">
                 Full documentation, options reference, and source code are
                 available on{" "}
                 <a
