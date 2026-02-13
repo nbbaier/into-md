@@ -45,7 +45,9 @@ async function run(url: string, options: CliOptions) {
   let frontmatterStrategy = "";
   const verboseBuffer: string[] = options.verbose ? ["Starting into-md…"] : [];
   let fetched = false;
-  const strategyResolver = (strategyUsed: "static" | "headless") => {
+  const strategyResolver = (
+    strategyUsed: "static" | "headless" | "markdown"
+  ) => {
     if (fetched) {
       return;
     }
@@ -79,28 +81,43 @@ async function run(url: string, options: CliOptions) {
   });
   strategyResolver(fetchResult.strategyUsed);
 
-  const extracted = extractContent(fetchResult.html, {
-    baseUrl: fetchResult.finalUrl,
-    excludeSelectors: selectors,
-    raw: options.raw,
-  });
+  let output: string;
 
-  let workingHtml = extracted.html;
-  workingHtml = convertTablesToJson(workingHtml);
-  workingHtml = annotateImages(workingHtml, fetchResult.finalUrl);
+  if (fetchResult.markdown) {
+    const frontmatter = buildFrontmatter({
+      source: fetchResult.finalUrl,
+      strategy: frontmatterStrategy,
+    });
+    if (options.verbose && fetchResult.markdownTokens) {
+      console.error(
+        `Markdown tokens (from server): ${fetchResult.markdownTokens}`
+      );
+    }
+    output = `${frontmatter}\n\n${fetchResult.markdown}`.trim();
+  } else {
+    const extracted = extractContent(fetchResult.html, {
+      baseUrl: fetchResult.finalUrl,
+      excludeSelectors: selectors,
+      raw: options.raw,
+    });
 
-  const markdown = convertHtmlToMarkdown(workingHtml, {
-    baseUrl: fetchResult.finalUrl,
-    stripLinks: options.stripLinks,
-  });
+    let workingHtml = extracted.html;
+    workingHtml = convertTablesToJson(workingHtml);
+    workingHtml = annotateImages(workingHtml, fetchResult.finalUrl);
 
-  const frontmatter = buildFrontmatter({
-    ...extracted.metadata,
-    source: fetchResult.finalUrl,
-    strategy: frontmatterStrategy,
-  });
+    const markdown = convertHtmlToMarkdown(workingHtml, {
+      baseUrl: fetchResult.finalUrl,
+      stripLinks: options.stripLinks,
+    });
 
-  const output = `${frontmatter}\n\n${markdown}`.trim();
+    const frontmatter = buildFrontmatter({
+      ...extracted.metadata,
+      source: fetchResult.finalUrl,
+      strategy: frontmatterStrategy,
+    });
+
+    output = `${frontmatter}\n\n${markdown}`.trim();
+  }
 
   if (options.output) {
     await writeFile(options.output, output, "utf8");
