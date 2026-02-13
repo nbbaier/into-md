@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { Command } from "commander";
-
+import pkg from "../package.json" with { type: "json" };
 import { convertHtmlToMarkdown } from "./converter";
 import { extractContent } from "./extractor";
 import { fetchPage } from "./fetcher";
@@ -9,6 +9,7 @@ import { buildFrontmatter } from "./metadata";
 import { convertTablesToJson } from "./tables";
 
 const DEFAULT_TIMEOUT = 30_000;
+const { version } = pkg;
 
 interface CliOptions {
   output?: string;
@@ -167,7 +168,7 @@ function buildProgram() {
     .option("--no-cache", "Bypass response cache")
     .option("-v, --verbose", "Show detailed progress information");
 
-  program.version("0.1.0");
+  program.version(version);
   return program;
 }
 
