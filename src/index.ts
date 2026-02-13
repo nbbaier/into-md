@@ -1,12 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { Command } from "commander";
 import pkg from "../package.json" with { type: "json" };
-import { convertHtmlToMarkdown } from "./converter";
-import { extractContent } from "./extractor";
 import { fetchPage } from "./fetcher";
-import { annotateImages } from "./images";
 import { buildFrontmatter } from "./metadata";
-import { convertTablesToJson } from "./tables";
 
 const DEFAULT_TIMEOUT = 30_000;
 const { version } = pkg;
@@ -75,6 +71,8 @@ async function run(url: string, options: CliOptions) {
     timeoutMs: options.timeout ?? DEFAULT_TIMEOUT,
     mode,
     raw: options.raw,
+    excludeSelectors: selectors,
+    stripLinks: options.stripLinks,
     userAgent: options.userAgent,
     verbose: options.verbose,
     logBuffer: options.verbose ? verboseBuffer : undefined,
@@ -82,43 +80,19 @@ async function run(url: string, options: CliOptions) {
   });
   strategyResolver(fetchResult.strategyUsed);
 
-  let output: string;
-
-  if (fetchResult.markdown) {
-    const frontmatter = buildFrontmatter({
-      source: fetchResult.finalUrl,
-      strategy: frontmatterStrategy,
-    });
-    if (options.verbose && fetchResult.markdownTokens) {
-      console.error(
-        `Markdown tokens (from server): ${fetchResult.markdownTokens}`
-      );
-    }
-    output = `${frontmatter}\n\n${fetchResult.markdown}`.trim();
-  } else {
-    const extracted = extractContent(fetchResult.html, {
-      baseUrl: fetchResult.finalUrl,
-      excludeSelectors: selectors,
-      raw: options.raw,
-    });
-
-    let workingHtml = extracted.html;
-    workingHtml = convertTablesToJson(workingHtml);
-    workingHtml = annotateImages(workingHtml, fetchResult.finalUrl);
-
-    const markdown = convertHtmlToMarkdown(workingHtml, {
-      baseUrl: fetchResult.finalUrl,
-      stripLinks: options.stripLinks,
-    });
-
-    const frontmatter = buildFrontmatter({
-      ...extracted.metadata,
-      source: fetchResult.finalUrl,
-      strategy: frontmatterStrategy,
-    });
-
-    output = `${frontmatter}\n\n${markdown}`.trim();
+  if (options.verbose && fetchResult.markdownTokens) {
+    console.error(
+      `Markdown tokens (from server): ${fetchResult.markdownTokens}`
+    );
   }
+
+  const frontmatter = buildFrontmatter({
+    ...fetchResult.metadata,
+    source: fetchResult.finalUrl,
+    strategy: frontmatterStrategy,
+  });
+
+  const output = `${frontmatter}\n\n${fetchResult.markdown}`.trim();
 
   if (options.output) {
     await writeFile(options.output, output, "utf8");
