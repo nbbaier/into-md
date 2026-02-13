@@ -17,9 +17,9 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "typecheck": "tsgo --noEmit",
-    "release:minor": "bun run build && npm version minor -m 'v%s'",
-    "release:major": "bun run build && npm version major -m 'v%s'",
-    "release:patch": "bun run build && npm version patch -m 'v%s'"
+    "release:minor": "npm version minor -m 'v%s' && bun run build",
+    "release:major": "npm version major -m 'v%s' && bun run build",
+    "release:patch": "npm version patch -m 'v%s' && bun run build"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
