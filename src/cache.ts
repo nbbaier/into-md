@@ -13,7 +13,7 @@ interface CachedResponse {
   finalUrl: string;
   fetchedAt: number;
   content: string;
-  strategy: "static" | "headless" | "unknown";
+  strategy: "static" | "headless" | "markdown" | "unknown";
 }
 
 const defaultCacheDir = join(
@@ -58,6 +58,7 @@ export async function readFromCache(
     const strategy = (payload.strategy ?? "unknown") as
       | "static"
       | "headless"
+      | "markdown"
       | "unknown";
 
     const isFresh = info.mtimeMs + ttlMs > Date.now();
@@ -77,7 +78,7 @@ export async function writeToCache(
   url: string,
   content: string,
   finalUrl: string,
-  strategy: "static" | "headless",
+  strategy: "static" | "headless" | "markdown",
   options?: Partial<CacheOptions>
 ): Promise<void> {
   const { enabled = true, cacheDir = defaultCacheDir } = options ?? {};

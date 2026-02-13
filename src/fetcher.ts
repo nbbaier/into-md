@@ -17,7 +17,7 @@ interface FetchOptions {
   noCache?: boolean;
   verbose?: boolean;
   raw?: boolean;
-  onStrategyResolved?: (strategy: "static" | "headless") => void;
+  onStrategyResolved?: (strategy: "static" | "headless" | "markdown") => void;
   logBuffer?: string[];
 }
 
@@ -25,7 +25,11 @@ interface FetchResult {
   html: string;
   finalUrl: string;
   fromCache: boolean;
-  strategyUsed: "static" | "headless";
+  strategyUsed: "static" | "headless" | "markdown";
+  /** Set when the server returned text/markdown via content negotiation */
+  markdown?: string;
+  /** Token count from x-markdown-tokens header, if present */
+  markdownTokens?: number;
 }
 
 interface CookieRecord {
@@ -139,6 +143,7 @@ async function fetchWithHttp(
 
   const { header: cookiesHeader } = parseCookiesFile(options.cookiesPath);
   const headers = new Headers({
+    Accept: "text/markdown, text/html",
     "User-Agent": options.userAgent ?? DEFAULT_USER_AGENT,
   });
   if (cookiesHeader) {
@@ -162,12 +167,30 @@ async function fetchWithHttp(
     const contentType = response.headers.get("Content-Type") ?? undefined;
     const buffer = await response.arrayBuffer();
     const decoder = new TextDecoder(options.encoding);
-    const html = decoder.decode(buffer);
+    const body = decoder.decode(buffer);
+
+    if (contentType && MARKDOWN_CONTENT_TYPE_RE.test(contentType)) {
+      const tokensHeader = response.headers.get("x-markdown-tokens");
+      logVerbose(
+        "Server returned text/markdown via content negotiation",
+        options
+      );
+      return {
+        contentType,
+        finalUrl,
+        fromCache: false,
+        html: "",
+        markdown: body,
+        markdownTokens: tokensHeader ? Number(tokensHeader) : undefined,
+        strategyUsed: "markdown",
+      };
+    }
+
     return {
       contentType,
       finalUrl,
       fromCache: false,
-      html,
+      html: body,
       strategyUsed: "static",
     };
   } catch (error) {
@@ -314,11 +337,23 @@ async function tryGetFromCache(
   const rawCachedStrategy = cached.strategy as
     | "static"
     | "headless"
+    | "markdown"
     | "unknown";
 
   if (rawCachedStrategy === "unknown") {
     logVerbose("Cache miss (unknown strategy, re-probing)", options);
     return null;
+  }
+
+  if (rawCachedStrategy === "markdown") {
+    logVerbose("Cache hit (markdown)", options);
+    return {
+      html: "",
+      markdown: cached.content,
+      finalUrl: cached.finalUrl ?? url,
+      fromCache: true,
+      strategyUsed: "markdown",
+    };
   }
 
   const canUseCache =
@@ -341,18 +376,34 @@ async function tryGetFromCache(
 }
 
 const HTML_CONTENT_TYPE_RE = /text\/html|application\/xhtml\+xml/i;
+const MARKDOWN_CONTENT_TYPE_RE = /text\/markdown/i;
+
+interface FetchModeResult {
+  html: string;
+  finalUrl: string;
+  strategy: "static" | "headless" | "markdown";
+  markdown?: string;
+  markdownTokens?: number;
+}
 
 async function fetchWithAutoDetect(
   url: string,
   options: FetchOptions
-): Promise<{
-  html: string;
-  finalUrl: string;
-  strategy: "static" | "headless";
-}> {
+): Promise<FetchModeResult> {
   logVerbose("Auto-detect mode: starting static probe", options);
 
   const staticResult = await fetchWithHttp(url, options);
+
+  if (staticResult.strategyUsed === "markdown") {
+    return {
+      html: "",
+      finalUrl: staticResult.finalUrl,
+      strategy: "markdown",
+      markdown: staticResult.markdown,
+      markdownTokens: staticResult.markdownTokens,
+    };
+  }
+
   const rawHtml = staticResult.html;
   const finalUrl = staticResult.finalUrl;
 
@@ -419,13 +470,18 @@ async function fetchWithMode(
   url: string,
   mode: RenderMode,
   options: FetchOptions
-): Promise<{
-  html: string;
-  finalUrl: string;
-  strategy: "static" | "headless";
-}> {
+): Promise<FetchModeResult> {
   if (mode === "static") {
     const result = await fetchWithHttp(url, options);
+    if (result.strategyUsed === "markdown") {
+      return {
+        html: "",
+        finalUrl: result.finalUrl,
+        strategy: "markdown",
+        markdown: result.markdown,
+        markdownTokens: result.markdownTokens,
+      };
+    }
     return { html: result.html, finalUrl: result.finalUrl, strategy: "static" };
   }
 
@@ -453,17 +509,25 @@ async function orchestrateFetch(
     return cached;
   }
 
-  const { html, finalUrl, strategy } = await fetchWithMode(url, mode, options);
-  options.onStrategyResolved?.(strategy);
+  const result = await fetchWithMode(url, mode, options);
+  options.onStrategyResolved?.(result.strategy);
 
   if (!options.noCache) {
-    await writeToCache(url, html, finalUrl, strategy, {
+    const cacheContent = result.markdown ?? result.html;
+    await writeToCache(url, cacheContent, result.finalUrl, result.strategy, {
       enabled: !options.noCache,
       ...options.cache,
     });
   }
 
-  return { html, finalUrl, fromCache: false, strategyUsed: strategy };
+  return {
+    html: result.html,
+    finalUrl: result.finalUrl,
+    fromCache: false,
+    strategyUsed: result.strategy,
+    markdown: result.markdown,
+    markdownTokens: result.markdownTokens,
+  };
 }
 
 export function fetchPage(
