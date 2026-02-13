@@ -1,7 +1,30 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { detectNeedForBrowser } from "./auto-detect";
-import { type CacheOptions, readFromCache, writeToCache } from "./cache";
+import {
+  type CacheMetadata,
+  type CacheOptions,
+  type ExtractionOptions,
+  readFromCache,
+  writeToCache,
+} from "./cache";
+
+function extractionOptionsFrom(options: FetchOptions): ExtractionOptions {
+  const result: ExtractionOptions = {};
+  if (options.raw) {
+    result.raw = true;
+  }
+  if (options.excludeSelectors?.length) {
+    result.excludeSelectors = options.excludeSelectors;
+  }
+  if (options.stripLinks) {
+    result.stripLinks = true;
+  }
+  if (options.encoding) {
+    result.encoding = options.encoding;
+  }
+  return result;
+}
 
 let browserVerified = false;
 
@@ -17,17 +40,18 @@ interface FetchOptions {
   noCache?: boolean;
   verbose?: boolean;
   raw?: boolean;
+  excludeSelectors?: string[];
+  stripLinks?: boolean;
   onStrategyResolved?: (strategy: "static" | "headless" | "markdown") => void;
   logBuffer?: string[];
 }
 
 interface FetchResult {
-  html: string;
+  markdown: string;
   finalUrl: string;
   fromCache: boolean;
   strategyUsed: "static" | "headless" | "markdown";
-  /** Set when the server returned text/markdown via content negotiation */
-  markdown?: string;
+  metadata: CacheMetadata;
   /** Token count from x-markdown-tokens header, if present */
   markdownTokens?: number;
 }
@@ -41,8 +65,15 @@ interface CookieRecord {
   expires: number;
 }
 
-interface InternalFetchResult extends FetchResult {
+/** Raw HTTP result before the extract→convert pipeline runs */
+interface InternalFetchResult {
+  html: string;
+  finalUrl: string;
+  fromCache: boolean;
+  strategyUsed: "static" | "headless" | "markdown";
   contentType?: string;
+  markdown?: string;
+  markdownTokens?: number;
 }
 
 const DEFAULT_USER_AGENT =
@@ -207,7 +238,7 @@ async function fetchWithHttp(
 async function fetchWithBrowser(
   url: string,
   options: FetchOptions
-): Promise<FetchResult> {
+): Promise<InternalFetchResult> {
   let playwright: typeof import("playwright") | null = null;
   try {
     playwright = await import("playwright");
@@ -319,60 +350,29 @@ async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
 
 async function tryGetFromCache(
   url: string,
-  mode: RenderMode,
   options: FetchOptions
 ): Promise<FetchResult | null> {
   if (options.noCache) {
     return null;
   }
 
-  const cached = await readFromCache(url, {
-    enabled: !options.noCache,
-    ...options.cache,
-  });
+  const cached = await readFromCache(
+    url,
+    { enabled: !options.noCache, ...options.cache },
+    extractionOptionsFrom(options)
+  );
   if (!cached) {
     return null;
   }
 
-  const rawCachedStrategy = cached.strategy as
-    | "static"
-    | "headless"
-    | "markdown"
-    | "unknown";
-
-  if (rawCachedStrategy === "unknown") {
-    logVerbose("Cache miss (unknown strategy, re-probing)", options);
-    return null;
-  }
-
-  if (rawCachedStrategy === "markdown") {
-    logVerbose("Cache hit (markdown)", options);
-    return {
-      html: "",
-      markdown: cached.content,
-      finalUrl: cached.finalUrl ?? url,
-      fromCache: true,
-      strategyUsed: "markdown",
-    };
-  }
-
-  const canUseCache =
-    mode === "auto" ||
-    (mode === "static" && rawCachedStrategy === "static") ||
-    (mode === "headless" && rawCachedStrategy === "headless");
-
-  if (canUseCache) {
-    logVerbose("Cache hit", options);
-    return {
-      html: cached.content,
-      finalUrl: cached.finalUrl ?? url,
-      fromCache: true,
-      strategyUsed: rawCachedStrategy,
-    };
-  }
-
-  logVerbose("Cache miss (strategy mismatch)", options);
-  return null;
+  logVerbose("Cache hit", options);
+  return {
+    markdown: cached.markdown,
+    finalUrl: cached.finalUrl,
+    fromCache: true,
+    strategyUsed: "static",
+    metadata: cached.metadata,
+  };
 }
 
 const HTML_CONTENT_TYPE_RE = /text\/html|application\/xhtml\+xml/i;
@@ -498,12 +498,46 @@ async function fetchWithMode(
   return fetchWithAutoDetect(url, options);
 }
 
+async function htmlToMarkdownPipeline(
+  html: string,
+  finalUrl: string,
+  options: FetchOptions
+): Promise<{ markdown: string; metadata: CacheMetadata }> {
+  const { extractContent } = await import("./extractor");
+  const { convertTablesToJson } = await import("./tables");
+  const { annotateImages } = await import("./images");
+  const { convertHtmlToMarkdown } = await import("./converter");
+
+  const extracted = extractContent(html, {
+    baseUrl: finalUrl,
+    excludeSelectors: options.excludeSelectors,
+    raw: options.raw,
+  });
+
+  let workingHtml = extracted.html;
+  workingHtml = convertTablesToJson(workingHtml);
+  workingHtml = annotateImages(workingHtml, finalUrl);
+
+  const markdown = convertHtmlToMarkdown(workingHtml, {
+    baseUrl: finalUrl,
+    stripLinks: options.stripLinks,
+  });
+
+  const metadata: CacheMetadata = {
+    title: extracted.metadata.title,
+    description: extracted.metadata.description,
+    author: extracted.metadata.author,
+  };
+
+  return { markdown, metadata };
+}
+
 async function orchestrateFetch(
   url: string,
   mode: RenderMode,
   options: FetchOptions
 ): Promise<FetchResult> {
-  const cached = await tryGetFromCache(url, mode, options);
+  const cached = await tryGetFromCache(url, options);
   if (cached) {
     options.onStrategyResolved?.(cached.strategyUsed);
     return cached;
@@ -512,21 +546,43 @@ async function orchestrateFetch(
   const result = await fetchWithMode(url, mode, options);
   options.onStrategyResolved?.(result.strategy);
 
+  let markdown: string;
+  let metadata: CacheMetadata = {};
+  let markdownTokens: number | undefined;
+
+  if (result.markdown) {
+    // Server returned markdown directly (content negotiation)
+    markdown = result.markdown;
+    markdownTokens = result.markdownTokens;
+  } else {
+    // Run extract→convert pipeline on HTML
+    const converted = await htmlToMarkdownPipeline(
+      result.html,
+      result.finalUrl,
+      options
+    );
+    markdown = converted.markdown;
+    metadata = converted.metadata;
+  }
+
   if (!options.noCache) {
-    const cacheContent = result.markdown ?? result.html;
-    await writeToCache(url, cacheContent, result.finalUrl, result.strategy, {
-      enabled: !options.noCache,
-      ...options.cache,
-    });
+    await writeToCache(
+      url,
+      markdown,
+      result.finalUrl,
+      metadata,
+      { enabled: !options.noCache, ...options.cache },
+      extractionOptionsFrom(options)
+    );
   }
 
   return {
-    html: result.html,
+    markdown,
     finalUrl: result.finalUrl,
     fromCache: false,
     strategyUsed: result.strategy,
-    markdown: result.markdown,
-    markdownTokens: result.markdownTokens,
+    metadata,
+    markdownTokens,
   };
 }
 
