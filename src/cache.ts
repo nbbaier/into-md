@@ -58,6 +58,7 @@ export async function readFromCache(
     const strategy = (payload.strategy ?? "unknown") as
       | "static"
       | "headless"
+      | "markdown"
       | "unknown";
 
     const isFresh = info.mtimeMs + ttlMs > Date.now();
