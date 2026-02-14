@@ -175,6 +175,7 @@ async function fetchWithHttp(
   const { header: cookiesHeader } = parseCookiesFile(options.cookiesPath);
   const headers = new Headers({
     Accept: "text/markdown, text/html",
+    "Accept-Encoding": "identity",
     "User-Agent": options.userAgent ?? DEFAULT_USER_AGENT,
   });
   if (cookiesHeader) {

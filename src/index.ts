@@ -18,7 +18,7 @@ interface CliOptions {
   stripLinks?: boolean;
   exclude?: string;
   timeout?: number;
-  noCache?: boolean;
+  cache?: boolean;
   verbose?: boolean;
 }
 
@@ -67,7 +67,7 @@ async function run(url: string, options: CliOptions) {
   const fetchResult = await fetchPage(url, {
     cookiesPath: options.cookies,
     encoding: options.encoding,
-    noCache: options.noCache,
+    noCache: options.cache === false,
     timeoutMs: options.timeout ?? DEFAULT_TIMEOUT,
     mode,
     raw: options.raw,
