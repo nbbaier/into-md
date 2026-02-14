@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { Command } from "commander";
 import pkg from "../package.json" with { type: "json" };
 import { fetchPage } from "./fetcher";
-import { buildFrontmatter } from "./metadata";
+import { buildFrontmatter, parseFrontmatter } from "./metadata";
 
 const DEFAULT_TIMEOUT = 30_000;
 const { version } = pkg;
@@ -86,13 +86,19 @@ async function run(url: string, options: CliOptions) {
     );
   }
 
+  const { fields: serverFields, body: strippedMarkdown } = parseFrontmatter(
+    fetchResult.markdown
+  );
+
   const frontmatter = buildFrontmatter({
+    ...serverFields,
     ...fetchResult.metadata,
     source: fetchResult.finalUrl,
     strategy: frontmatterStrategy,
+    extraFields: serverFields,
   });
 
-  const output = `${frontmatter}\n\n${fetchResult.markdown}`.trim();
+  const output = `${frontmatter}\n\n${strippedMarkdown}`.trim();
 
   if (options.output) {
     await writeFile(options.output, output, "utf8");
