@@ -163,9 +163,14 @@ async function main() {
     return;
   }
 
+  let normalizedUrl = url;
+  if (!(url.startsWith("http://") || url.startsWith("https://"))) {
+    normalizedUrl = `https://${url}`;
+  }
+
   const opts = program.opts<CliOptions>();
   try {
-    await run(url, {
+    await run(normalizedUrl, {
       ...opts,
       timeout: opts.timeout ? Number(opts.timeout) : DEFAULT_TIMEOUT,
     });

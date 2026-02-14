@@ -7,8 +7,8 @@
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
-    "dev": "alchemy dev",
-    "deploy": "alchemy deploy",
+    "dev": "alchemy dev --stage dev",
+    "deploy": "alchemy deploy --stage prod",
     "destroy": "alchemy destroy",
     "start": "bun run src/index.ts",
     "build": "tsdown",
