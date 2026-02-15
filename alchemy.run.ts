@@ -12,7 +12,7 @@ export const worker = await Worker("worker", {
   entrypoint: "./website/index.tsx",
   compatibilityDate: "2026-02-07",
   compatibilityFlags: ["nodejs_compat"],
-  domains: ["into-md.nicobaier.com"],
+  domains: ["into-md.nicobaier.com", "into-md.dev"],
 });
 
 console.log({ url: worker.url, name: worker.name });
