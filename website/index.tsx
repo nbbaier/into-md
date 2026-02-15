@@ -51,37 +51,50 @@ app.get("/", (c) =>
         />
         <meta charset="UTF-8" />
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-        <script src="https://cdn.tailwindcss.com" />
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" />
         <link href="https://fonts.googleapis.com" rel="preconnect" />
-        <link crossOrigin href="https://fonts.gstatic.com" rel="preconnect" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap"
+          crossOrigin="anonymous"
+          href="https://fonts.gstatic.com"
+          rel="preconnect"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
           rel="stylesheet"
         />
         <style
           // biome-ignore lint/security/noDangerouslySetInnerHtml: We're okay with this
           dangerouslySetInnerHTML={{
             __html: `
-   html { font-size: 15px; };
-      .geist-regular { font-family: "Geist", sans-serif; font-optical-sizing: auto; font-weight: 400; font-style: normal; }
-   .geist-mono { font-family: "Geist Mono", monospace; font-optical-sizing: auto; font-weight: 400; font-style: normal; }
+   html { font-size: 16px; }
    .custom-box-shadow { box-shadow: 3.25px 3.25px 0px 0px rgb(221, 221, 221); }
    .custom-box-shadow:hover { box-shadow: 3.25px 3.25px 0px 0px rgb(212, 212, 212); }
    `,
           }}
         />
+        <style
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: tailwind theme config
+          dangerouslySetInnerHTML={{
+            __html: `
+   @theme {
+     --font-sans: "Geist", sans-serif;
+     --font-mono: "Geist Mono", monospace;
+   }
+   `,
+          }}
+          // @ts-expect-error - Tailwind CSS is a valid CSS type
+          type={"text/tailwindcss"}
+        />
       </head>
-      <body class="bg-[#F8FBF8]">
-        <div class="geist-regular min-h-screen bg-[#F8FBF8] px-6 py-10 sm:px-8 sm:py-14">
+      <body class="bg-[#F8FBF8] font-sans">
+        <div class="min-h-screen bg-[#F8FBF8] px-6 py-10 sm:px-8 sm:py-14">
           <main class="mx-auto flex max-w-2xl flex-col gap-8">
             <div class="flex flex-col gap-2">
               <h1 class="font-semibold text-2xl tracking-normal">into-md</h1>
               <p class="text-neutral-600 leading-[1.75]">
                 Fetch any URL. Get clean markdown. Feed it to your LLM.
               </p>
-              <span class="geist-mono text-neutral-400 text-sm">
-                v{version}
-              </span>
+              <span class="font-mono text-neutral-400 text-sm">v{version}</span>
             </div>
 
             <section class="flex flex-col">
@@ -89,7 +102,7 @@ app.get("/", (c) =>
               <div class="mb-2 text-neutral-600 leading-[1.75]">
                 Global install with your package manager of choice:
               </div>
-              <pre class="geist-mono overflow-x-auto rounded-md border border-neutral-200 bg-[#F3F3F2] p-3 text-sm leading-5">
+              <pre class="overflow-x-auto rounded-md border border-neutral-200 bg-[#F3F3F2] p-3 font-mono text-sm leading-5">
                 <code class="leading-[1.5rem]">
                   {"bun add -g into-md\n"}
                   {"npm install -g into-md\n"}
@@ -98,13 +111,12 @@ app.get("/", (c) =>
               </pre>
               <div class="mt-3 text-neutral-600 leading-[1.75]">
                 Or use{" "}
-                <code class="geist-mono rounded-sm border border-neutral-200 bg-[#F3F3F2] px-1 py-0.5 text-sm">
+                <code class="rounded-sm border border-neutral-200 bg-[#F3F3F2] px-1 py-0.5 font-mono text-sm">
                   bunx into-md
                 </code>{" "}
                 to run without installing.
               </div>
             </section>
-
             <section class="flex flex-col">
               <h2 class="mb-2 font-medium text-xl">How it works</h2>
               <div class="mb-4 text-neutral-600 leading-[1.75]">
@@ -134,7 +146,6 @@ app.get("/", (c) =>
                 </div>
               </div>
             </section>
-
             <section class="flex flex-col">
               <h2 class="mb-2 font-medium text-xl">What you get</h2>
               <div class="my-2 flex flex-col gap-4">
@@ -168,10 +179,9 @@ app.get("/", (c) =>
                 </div>
               </div>
             </section>
-
             <section class="flex flex-col">
               <h2 class="mb-2 font-medium text-xl">Example</h2>
-              <pre class="geist-mono overflow-x-auto rounded-md border border-neutral-200 bg-[#F3F3F2] p-3 text-sm leading-5">
+              <pre class="overflow-x-auto rounded-md border border-neutral-200 bg-[#F3F3F2] p-3 font-mono text-sm leading-5">
                 <code class="leading-[1.5rem]">
                   {"$ into-md https://example.com/article\n\n"}
                   {"---\n"}
@@ -186,7 +196,6 @@ app.get("/", (c) =>
                 </code>
               </pre>
             </section>
-
             <section class="flex flex-col">
               <h2 class="mb-2 font-medium text-xl">Learn more</h2>
               <p class="text-base text-neutral-600 leading-[1.75]">
@@ -203,7 +212,6 @@ app.get("/", (c) =>
                 . Issues and contributions welcome.
               </p>
             </section>
-
             <div class="flex flex-col pt-4">
               <div class="mb-4 w-full border-neutral-300 border-t" />
               <div class="flex items-center justify-between">
