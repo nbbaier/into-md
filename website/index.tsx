@@ -24,6 +24,19 @@ const ArrowRight = () => (
   </svg>
 );
 
+const FeatureBox = ({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) => (
+  <div class="custom-box-shadow rounded-md border border-black bg-[#F8FBF8] px-4 pt-3 pb-4">
+    <h3 class="mb-1 font-medium text-base">{title}</h3>
+    <p class="text-neutral-600 text-sm">{description}</p>
+  </div>
+);
+
 const ArrowDown = () => (
   <svg
     aria-hidden="true"
@@ -53,34 +66,23 @@ app.get("/", (c) =>
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" />
         <link href="https://fonts.googleapis.com" rel="preconnect" />
+        <link crossOrigin href="https://fonts.gstatic.com" rel="preconnect" />
         <link
-          crossOrigin="anonymous"
-          href="https://fonts.gstatic.com"
-          rel="preconnect"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap"
           rel="stylesheet"
         />
         <style
           // biome-ignore lint/security/noDangerouslySetInnerHtml: We're okay with this
           dangerouslySetInnerHTML={{
-            __html: `
-   html { font-size: 16px; }
-   .custom-box-shadow { box-shadow: 3.25px 3.25px 0px 0px rgb(221, 221, 221); }
-   .custom-box-shadow:hover { box-shadow: 3.25px 3.25px 0px 0px rgb(212, 212, 212); }
-   `,
+            __html:
+              "html { font-size: 16px; } .custom-box-shadow { box-shadow: 3.25px 3.25px 0px 0px rgb(221, 221, 221); } .custom-box-shadow:hover { box-shadow: 3.25px 3.25px 0px 0px rgb(212, 212, 212); }",
           }}
         />
         <style
           // biome-ignore lint/security/noDangerouslySetInnerHtml: tailwind theme config
           dangerouslySetInnerHTML={{
-            __html: `
-   @theme {
-     --font-sans: "Geist", sans-serif;
-     --font-mono: "Geist Mono", monospace;
-   }
-   `,
+            __html:
+              '@theme {--font-sans: "Geist", sans-serif; --font-mono: "Geist Mono", monospace;}',
           }}
           // @ts-expect-error - Tailwind CSS is a valid CSS type
           type={"text/tailwindcss"}
@@ -149,34 +151,22 @@ app.get("/", (c) =>
             <section class="flex flex-col">
               <h2 class="mb-2 font-medium text-xl">What you get</h2>
               <div class="my-2 flex flex-col gap-4">
-                <div class="custom-box-shadow rounded-md border border-black bg-[#F8FBF8] px-4 pt-3 pb-4">
-                  <h3 class="mb-1 font-medium text-base">Smart extraction</h3>
-                  <p class="text-neutral-600 text-sm">
-                    Uses readability heuristics to pull out the main content and
-                    strip away navigation, ads, and clutter.
-                  </p>
-                </div>
-                <div class="custom-box-shadow rounded-md border border-black bg-[#F8FBF8] px-4 pt-3 pb-4">
-                  <h3 class="mb-1 font-medium text-base">Auto JS detection</h3>
-                  <p class="text-neutral-600 text-sm">
-                    Automatically detects SPAs and JS-rendered pages and falls
-                    back to a headless browser when needed.
-                  </p>
-                </div>
-                <div class="custom-box-shadow rounded-md border border-black bg-[#F8FBF8] px-4 pt-3 pb-4">
-                  <h3 class="mb-1 font-medium text-base">LLM ready</h3>
-                  <p class="text-neutral-600 text-sm">
-                    Clean output with YAML frontmatter and semantic markdown,
-                    optimized for feeding into AI context windows.
-                  </p>
-                </div>
-                <div class="custom-box-shadow rounded-md border border-black bg-[#F8FBF8] px-4 pt-3 pb-4">
-                  <h3 class="mb-1 font-medium text-base">Well structured</h3>
-                  <p class="text-neutral-600 text-sm">
-                    Tables converted to JSON, images preserved with context, and
-                    code blocks auto-tagged for syntax highlighting.
-                  </p>
-                </div>
+                <FeatureBox
+                  description="Uses readability heuristics to pull out the main content and strip away navigation, ads, and clutter."
+                  title="Smart extraction"
+                />
+                <FeatureBox
+                  description="Automatically detects SPAs and JS-rendered pages and falls back to a headless browser when needed."
+                  title="Auto JS detection"
+                />
+                <FeatureBox
+                  description="Clean output with YAML frontmatter and semantic markdown, optimized for feeding into AI context windows."
+                  title="LLM ready"
+                />
+                <FeatureBox
+                  description="Tables converted to JSON, images preserved with context, and code blocks auto-tagged for syntax highlighting."
+                  title="Well structured"
+                />
               </div>
             </section>
             <section class="flex flex-col">
