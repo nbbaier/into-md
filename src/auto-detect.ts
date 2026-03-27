@@ -156,8 +156,8 @@ function isContentTooSparse(extractedHtml: string): boolean {
 }
 
 interface DetectionResult {
-  shouldFallback: boolean;
   reason?: string;
+  shouldFallback: boolean;
 }
 
 type DetectionStage = "stage1" | "stage2" | "both";

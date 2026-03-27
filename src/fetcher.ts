@@ -31,49 +31,49 @@ let browserVerified = false;
 type RenderMode = "auto" | "static" | "headless";
 
 interface FetchOptions {
-  mode?: RenderMode;
-  cookiesPath?: string;
-  userAgent?: string;
-  encoding?: string;
-  timeoutMs?: number;
   cache?: Partial<CacheOptions>;
-  noCache?: boolean;
-  verbose?: boolean;
-  raw?: boolean;
+  cookiesPath?: string;
+  encoding?: string;
   excludeSelectors?: string[];
-  stripLinks?: boolean;
-  onStrategyResolved?: (strategy: "static" | "headless" | "markdown") => void;
   logBuffer?: string[];
+  mode?: RenderMode;
+  noCache?: boolean;
+  onStrategyResolved?: (strategy: "static" | "headless" | "markdown") => void;
+  raw?: boolean;
+  stripLinks?: boolean;
+  timeoutMs?: number;
+  userAgent?: string;
+  verbose?: boolean;
 }
 
 interface FetchResult {
-  markdown: string;
   finalUrl: string;
   fromCache: boolean;
-  strategyUsed: "static" | "headless" | "markdown";
-  metadata: CacheMetadata;
+  markdown: string;
   /** Token count from x-markdown-tokens header, if present */
   markdownTokens?: number;
+  metadata: CacheMetadata;
+  strategyUsed: "static" | "headless" | "markdown";
 }
 
 interface CookieRecord {
-  name: string;
-  value: string;
   domain: string;
+  expires: number;
+  name: string;
   path: string;
   secure: boolean;
-  expires: number;
+  value: string;
 }
 
 /** Raw HTTP result before the extract→convert pipeline runs */
 interface InternalFetchResult {
-  html: string;
+  contentType?: string;
   finalUrl: string;
   fromCache: boolean;
-  strategyUsed: "static" | "headless" | "markdown";
-  contentType?: string;
+  html: string;
   markdown?: string;
   markdownTokens?: number;
+  strategyUsed: "static" | "headless" | "markdown";
 }
 
 const DEFAULT_USER_AGENT =
@@ -380,11 +380,11 @@ const HTML_CONTENT_TYPE_RE = /text\/html|application\/xhtml\+xml/i;
 const MARKDOWN_CONTENT_TYPE_RE = /text\/markdown/i;
 
 interface FetchModeResult {
-  html: string;
   finalUrl: string;
-  strategy: "static" | "headless" | "markdown";
+  html: string;
   markdown?: string;
   markdownTokens?: number;
+  strategy: "static" | "headless" | "markdown";
 }
 
 async function fetchWithAutoDetect(

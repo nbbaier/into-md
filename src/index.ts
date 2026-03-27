@@ -8,17 +8,17 @@ const DEFAULT_TIMEOUT = 30_000;
 const { version } = pkg;
 
 interface CliOptions {
-  output?: string;
+  cache?: boolean;
+  cookies?: string;
+  encoding?: string;
+  exclude?: string;
   js?: boolean;
+  output?: string;
 
   raw?: boolean;
-  cookies?: string;
-  userAgent?: string;
-  encoding?: string;
   stripLinks?: boolean;
-  exclude?: string;
   timeout?: number;
-  cache?: boolean;
+  userAgent?: string;
   verbose?: boolean;
 }
 

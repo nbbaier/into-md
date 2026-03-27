@@ -1,11 +1,11 @@
 interface FrontmatterInput {
-  title?: string;
-  description?: string;
   author?: string;
   date?: string;
+  description?: string;
+  extraFields?: Record<string, string>;
   source: string;
   strategy?: string;
-  extraFields?: Record<string, string>;
+  title?: string;
 }
 
 const FRONTMATTER_REGEX = /^---\n([\s\S]*?)\n---\n?/;

@@ -2,9 +2,9 @@ import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 
 interface ExtractOptions {
-  raw?: boolean;
-  excludeSelectors?: string[];
   baseUrl: string;
+  excludeSelectors?: string[];
+  raw?: boolean;
 }
 
 interface ExtractedContent {

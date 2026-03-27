@@ -32,8 +32,8 @@ const FeatureBox = ({
   description: string;
 }) => (
   <div class="custom-box-shadow rounded-md border border-black bg-[#F8FBF8] px-4 pt-3 pb-4">
-    <h3 class="mb-1 font-medium text-base">{title}</h3>
-    <p class="text-neutral-600 text-sm">{description}</p>
+    <h3 class="mb-1 font-semibold text-base leading-snug">{title}</h3>
+    <p class="text-neutral-600 text-sm leading-relaxed">{description}</p>
   </div>
 );
 
@@ -68,40 +68,42 @@ app.get("/", (c) =>
         <link href="https://fonts.googleapis.com" rel="preconnect" />
         <link crossOrigin href="https://fonts.gstatic.com" rel="preconnect" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Karla:ital,wght@0,200..800;1,200..800&family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&display=swap"
           rel="stylesheet"
         />
         <style
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: We're okay with this
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: styles and tailwind theme
           dangerouslySetInnerHTML={{
             __html:
-              "html { font-size: 16px; } .custom-box-shadow { box-shadow: 3.25px 3.25px 0px 0px rgb(221, 221, 221); } .custom-box-shadow:hover { box-shadow: 3.25px 3.25px 0px 0px rgb(212, 212, 212); }",
+              'html { font-size: 16px; font-kerning: normal; } h1, h2, h3, h4, h5, h6 { font-family: "Schibsted Grotesk", sans-serif; } code, pre { font-variant-ligatures: none; } .custom-box-shadow { box-shadow: 3.25px 3.25px 0px 0px rgb(221, 221, 221); } .custom-box-shadow:hover { box-shadow: 3.25px 3.25px 0px 0px rgb(212, 212, 212); }',
           }}
         />
         <style
           // biome-ignore lint/security/noDangerouslySetInnerHtml: tailwind theme config
           dangerouslySetInnerHTML={{
             __html:
-              '@theme {--font-sans: "Geist", sans-serif; --font-mono: "Geist Mono", monospace;}',
+              '@theme {--font-sans: "Karla", sans-serif; --font-mono: "Fira Code", monospace; --font-heading: "Schibsted Grotesk", sans-serif;}',
           }}
           // @ts-expect-error - Tailwind CSS is a valid CSS type
           type={"text/tailwindcss"}
         />
       </head>
       <body class="bg-[#F8FBF8] font-sans">
-        <div class="min-h-screen bg-[#F8FBF8] px-6 py-10 sm:px-8 sm:py-14">
+        <div class="min-h-screen px-6 py-10 sm:px-8 sm:py-14">
           <main class="mx-auto flex max-w-2xl flex-col gap-8">
             <div class="flex flex-col gap-2">
-              <h1 class="font-semibold text-2xl tracking-normal">into-md</h1>
-              <p class="text-neutral-600 leading-[1.75]">
+              <h1 class="font-bold text-3xl leading-tight tracking-tight">
+                into-md
+              </h1>
+              <p class="text-lg text-neutral-600 leading-[1.65]">
                 Fetch any URL. Get clean markdown. Feed it to your LLM.
               </p>
               <span class="font-mono text-neutral-400 text-sm">v{version}</span>
             </div>
 
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-xl">Install</h2>
-              <div class="mb-2 text-neutral-600 leading-[1.75]">
+              <h2 class="mb-3 font-semibold text-xl leading-snug">Install</h2>
+              <div class="mb-2 text-neutral-600 leading-[1.7]">
                 Global install with your package manager of choice:
               </div>
               <pre class="overflow-x-auto rounded-md border border-neutral-200 bg-[#F3F3F2] p-3 font-mono text-sm leading-5">
@@ -111,7 +113,7 @@ app.get("/", (c) =>
                   {"yarn global add into-md"}
                 </code>
               </pre>
-              <div class="mt-3 text-neutral-600 leading-[1.75]">
+              <div class="mt-3 text-neutral-600 leading-[1.7]">
                 Or use{" "}
                 <code class="rounded-sm border border-neutral-200 bg-[#F3F3F2] px-1 py-0.5 font-mono text-sm">
                   bunx into-md
@@ -120,8 +122,10 @@ app.get("/", (c) =>
               </div>
             </section>
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-xl">How it works</h2>
-              <div class="mb-4 text-neutral-600 leading-[1.75]">
+              <h2 class="mb-3 font-semibold text-xl leading-snug">
+                How it works
+              </h2>
+              <div class="mb-4 text-neutral-600 leading-[1.7]">
                 Pass any URL and get back clean, structured markdown ready for
                 LLM consumption. into-md auto-detects whether a page needs a
                 headless browser and falls back to Playwright if needed.
@@ -149,7 +153,9 @@ app.get("/", (c) =>
               </div>
             </section>
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-xl">What you get</h2>
+              <h2 class="mb-3 font-semibold text-xl leading-snug">
+                What you get
+              </h2>
               <div class="my-2 flex flex-col gap-4">
                 <FeatureBox
                   description="Uses readability heuristics to pull out the main content and strip away navigation, ads, and clutter."
@@ -170,7 +176,7 @@ app.get("/", (c) =>
               </div>
             </section>
             <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-xl">Example</h2>
+              <h2 class="mb-3 font-semibold text-xl leading-snug">Example</h2>
               <pre class="overflow-x-auto rounded-md border border-neutral-200 bg-[#F3F3F2] p-3 font-mono text-sm leading-5">
                 <code class="leading-[1.5rem]">
                   {"$ into-md https://example.com/article\n\n"}
@@ -185,22 +191,6 @@ app.get("/", (c) =>
                   {"and ready for your LLM..."}
                 </code>
               </pre>
-            </section>
-            <section class="flex flex-col">
-              <h2 class="mb-2 font-medium text-xl">Learn more</h2>
-              <p class="text-base text-neutral-600 leading-[1.75]">
-                Full documentation, options reference, and source code are
-                available on{" "}
-                <a
-                  class="text-blue-600 hover:underline"
-                  href="https://github.com/nbbaier/into-md"
-                  rel="noopener"
-                  target="_blank"
-                >
-                  GitHub
-                </a>
-                . Issues and contributions welcome.
-              </p>
             </section>
             <div class="flex flex-col pt-4">
               <div class="mb-4 w-full border-neutral-300 border-t" />
@@ -217,8 +207,10 @@ app.get("/", (c) =>
                 <a
                   class="text-blue-600 text-sm hover:underline"
                   href="https://github.com/nbbaier/into-md"
+                  rel="noopener"
+                  target="_blank"
                 >
-                  github
+                  GitHub
                 </a>
               </div>
             </div>

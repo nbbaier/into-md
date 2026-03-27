@@ -3,32 +3,32 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 export interface CacheOptions {
+  cacheDir?: string;
   enabled: boolean;
   ttlMs: number;
-  cacheDir?: string;
 }
 
 /** Options that affect markdown output and should be part of the cache key */
 export interface ExtractionOptions {
-  raw?: boolean;
-  excludeSelectors?: string[];
-  stripLinks?: boolean;
   encoding?: string;
+  excludeSelectors?: string[];
+  raw?: boolean;
+  stripLinks?: boolean;
 }
 
 export interface CacheMetadata {
-  title?: string;
-  description?: string;
   author?: string;
+  description?: string;
+  title?: string;
 }
 
 interface CachedResponse {
-  url: string;
-  finalUrl: string;
+  cacheVersion: 2;
   fetchedAt: number;
+  finalUrl: string;
   markdown: string;
   metadata: CacheMetadata;
-  cacheVersion: 2;
+  url: string;
 }
 
 const defaultCacheDir = join(
