@@ -4,6 +4,14 @@
   "bin": {
     "into-md": "dist/index.mjs"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nbbaier/into-md.git"
+  },
+  "homepage": "https://github.com/nbbaier/into-md#readme",
+  "bugs": {
+    "url": "https://github.com/nbbaier/into-md/issues"
+  },
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
