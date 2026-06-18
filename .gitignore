@@ -33,3 +33,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 .cachebro/
+
+# 1.0 release handoff scaffolding (applied, kept locally for reference)
+into-md-1.0-handoff/
