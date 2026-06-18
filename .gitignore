@@ -35,4 +35,4 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cachebro/
 
 # 1.0 release handoff scaffolding (applied, kept locally for reference)
-into-md-1.0-handoff/
+*-handoff/

@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-06-18
+
+### Fixed
+
+- Restricted the published npm package to `dist/` and `CHANGELOG.md` via a
+  `files` allowlist. Earlier releases inadvertently published the full repo —
+  source, tests, docs, lockfile, and local editor/agent config — bloating every
+  install. The runtime only needs the built `dist/` output.
+
+### Added
+
+- Declared the MIT license in `package.json` and added a `LICENSE` file (the
+  README already stated MIT; it is now consistent across the package).
+- Added `description` and `keywords` to `package.json` for npm discoverability.
+- Added npm version, CI status, and license badges to the README.
+
 ## [1.0.0] - 2026-06-18
 
 First stable release. The v1 CLI surface is now frozen — the documented flags

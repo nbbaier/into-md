@@ -1,5 +1,9 @@
 # into-md
 
+[![npm version](https://img.shields.io/npm/v/into-md.svg)](https://www.npmjs.com/package/into-md)
+[![CI](https://github.com/nbbaier/into-md/actions/workflows/ci.yml/badge.svg)](https://github.com/nbbaier/into-md/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+
 Turn any URL into clean, structured markdown built to feed LLMs. Unlike most url→markdown tools, `into-md` is tuned for context quality: it auto-detects whether a page needs a static fetch or a headless browser, runs Readability to keep the real article and drop nav/ads/chrome, and serializes tables to JSON so models parse them reliably instead of choking on pipe-delimited rows.
 
 ## Installation

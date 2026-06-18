@@ -1,6 +1,23 @@
 {
   "name": "into-md",
   "private": false,
+  "description": "CLI to fetch clean urls as clean markdown for LLMs",
+  "license": "MIT",
+  "author": "Nico Baier <nico.baier@gmail.com> (https://github.com/nbbaier)",
+  "keywords": [
+    "markdown",
+    "html-to-markdown",
+    "url-to-markdown",
+    "llm",
+    "readability",
+    "scraper",
+    "cli",
+    "playwright"
+  ],
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "bin": {
     "into-md": "dist/index.mjs"
   },
@@ -52,5 +69,5 @@
   "peerDependencies": {
     "typescript": "^6.0.3"
   },
-  "version": "1.0.0"
+  "version": "1.0.1"
 }
