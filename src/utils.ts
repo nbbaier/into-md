@@ -9,7 +9,7 @@ export const toAbsoluteUrl = (
   baseUrl: string
 ): string | undefined => {
   if (!url) {
-    return undefined;
+    return;
   }
   try {
     return new URL(url, baseUrl).toString();

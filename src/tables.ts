@@ -34,10 +34,19 @@ function extractRows(
   $: CheerioAPI
 ): Record<string, string>[] {
   const rows: Record<string, string>[] = [];
-  const dataRows =
-    $table.find("tbody tr").length > 0
-      ? $table.find("tbody tr")
-      : $table.find("tr").slice(1);
+  const hasThead = $table.find("thead th").length > 0;
+  const bodyRows = $table.find("tbody tr");
+  // Candidate data rows: prefer an explicit tbody, otherwise every row that
+  // isn't inside a thead.
+  let dataRows = bodyRows.length
+    ? bodyRows
+    : $table.find("tr").filter((_, el) => $(el).closest("thead").length === 0);
+  // Without an explicit thead the first row supplied the headers, so it must
+  // not be repeated as data (the HTML parser wraps loose rows in an implicit
+  // tbody, which would otherwise sweep the header row back in).
+  if (!hasThead) {
+    dataRows = dataRows.slice(1);
+  }
 
   for (const row of dataRows.toArray()) {
     const cells = $(row).find("td, th");
