@@ -379,11 +379,21 @@ async function tryGetFromCache(
 const HTML_CONTENT_TYPE_RE = /text\/html|application\/xhtml\+xml/i;
 const MARKDOWN_CONTENT_TYPE_RE = /text\/markdown/i;
 
+interface PreExtractedContent {
+  html: string;
+  metadata: {
+    author?: string;
+    description?: string;
+    title?: string;
+  };
+}
+
 interface FetchModeResult {
   finalUrl: string;
   html: string;
   markdown?: string;
   markdownTokens?: number;
+  preExtracted?: PreExtractedContent;
   strategy: "static" | "headless" | "markdown";
 }
 
@@ -464,7 +474,12 @@ async function fetchWithAutoDetect(
   }
 
   logVerbose("Auto-detect: content is sufficient, using static", options);
-  return { html: rawHtml, finalUrl, strategy: "static" };
+  return {
+    html: rawHtml,
+    finalUrl,
+    strategy: "static",
+    preExtracted: { html: extractedHtml, metadata: extracted.metadata },
+  };
 }
 
 async function fetchWithMode(
@@ -502,20 +517,38 @@ async function fetchWithMode(
 async function htmlToMarkdownPipeline(
   html: string,
   finalUrl: string,
-  options: FetchOptions
+  options: FetchOptions,
+  preExtracted?: PreExtractedContent
 ): Promise<{ markdown: string; metadata: CacheMetadata }> {
-  const { extractContent } = await import("./extractor");
   const { convertTablesToJson } = await import("./tables");
   const { annotateImages } = await import("./images");
   const { convertHtmlToMarkdown } = await import("./converter");
 
-  const extracted = extractContent(html, {
-    baseUrl: finalUrl,
-    excludeSelectors: options.excludeSelectors,
-    raw: options.raw,
-  });
+  let workingHtml: string;
+  let metadata: CacheMetadata;
 
-  let workingHtml = extracted.html;
+  if (preExtracted && !options.excludeSelectors?.length) {
+    workingHtml = preExtracted.html;
+    metadata = {
+      title: preExtracted.metadata.title,
+      description: preExtracted.metadata.description,
+      author: preExtracted.metadata.author,
+    };
+  } else {
+    const { extractContent } = await import("./extractor");
+    const extracted = extractContent(html, {
+      baseUrl: finalUrl,
+      excludeSelectors: options.excludeSelectors,
+      raw: options.raw,
+    });
+    workingHtml = extracted.html;
+    metadata = {
+      title: extracted.metadata.title,
+      description: extracted.metadata.description,
+      author: extracted.metadata.author,
+    };
+  }
+
   workingHtml = convertTablesToJson(workingHtml);
   workingHtml = annotateImages(workingHtml, finalUrl);
 
@@ -523,12 +556,6 @@ async function htmlToMarkdownPipeline(
     baseUrl: finalUrl,
     stripLinks: options.stripLinks,
   });
-
-  const metadata: CacheMetadata = {
-    title: extracted.metadata.title,
-    description: extracted.metadata.description,
-    author: extracted.metadata.author,
-  };
 
   return { markdown, metadata };
 }
@@ -560,7 +587,8 @@ async function orchestrateFetch(
     const converted = await htmlToMarkdownPipeline(
       result.html,
       result.finalUrl,
-      options
+      options,
+      result.preExtracted
     );
     markdown = converted.markdown;
     metadata = converted.metadata;
