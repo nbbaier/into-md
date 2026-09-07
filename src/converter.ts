@@ -10,40 +10,7 @@ interface ConvertOptions {
   stripLinks?: boolean;
 }
 
-export function convertHtmlToMarkdown(
-  html: string,
-  options: ConvertOptions
-): string {
-  const $ = load(html);
-
-  // 1. Convert tables to JSON pre blocks
-  convertTablesToJsonDom($);
-
-  // 2. Annotate images with captions and absolute URLs
-  annotateImagesDom($, options.baseUrl);
-
-  // 3. Absolutify link hrefs
-  for (const el of $("a[href]").toArray()) {
-    const $el = $(el);
-    const absolute = toAbsoluteUrl($el.attr("href"), options.baseUrl);
-    if (absolute) {
-      $el.attr("href", absolute);
-    }
-  }
-
-  // 4. Absolutify image src (also done by annotateImages, kept for parity)
-  for (const el of $("img[src]").toArray()) {
-    const $el = $(el);
-    const absolute = toAbsoluteUrl($el.attr("src"), options.baseUrl);
-    if (absolute) {
-      $el.attr("src", absolute);
-    }
-  }
-
-  // 5. Remove script and style elements
-  $("script, style").remove();
-
-  const prepared = getBodyHtml($);
+function createTurndownService(stripLinks: boolean): TurndownService {
   const turndown = new TurndownService({
     bulletListMarker: "-",
     codeBlockStyle: "fenced",
@@ -53,7 +20,7 @@ export function convertHtmlToMarkdown(
   turndown.addRule("stripLinks", {
     filter: "a",
     replacement: (content, node) => {
-      if (options.stripLinks) {
+      if (stripLinks) {
         return content;
       }
       const href = (node as HTMLElement).getAttribute("href");
@@ -100,5 +67,50 @@ export function convertHtmlToMarkdown(
     },
   });
 
+  return turndown;
+}
+
+let turndownWithLinks: TurndownService | null = null;
+let turndownWithoutLinks: TurndownService | null = null;
+
+function getTurndownService(stripLinks?: boolean): TurndownService {
+  if (stripLinks) {
+    if (!turndownWithoutLinks) {
+      turndownWithoutLinks = createTurndownService(true);
+    }
+    return turndownWithoutLinks;
+  }
+  if (!turndownWithLinks) {
+    turndownWithLinks = createTurndownService(false);
+  }
+  return turndownWithLinks;
+}
+
+export function convertHtmlToMarkdown(
+  html: string,
+  options: ConvertOptions
+): string {
+  const $ = load(html);
+
+  // 1. Convert tables to JSON pre blocks
+  convertTablesToJsonDom($);
+
+  // 2. Annotate images with captions and absolute URLs
+  annotateImagesDom($, options.baseUrl);
+
+  // 3. Absolutify link hrefs
+  for (const el of $("a[href]").toArray()) {
+    const $el = $(el);
+    const absolute = toAbsoluteUrl($el.attr("href"), options.baseUrl);
+    if (absolute) {
+      $el.attr("href", absolute);
+    }
+  }
+
+  // 4. Remove script and style elements
+  $("script, style").remove();
+
+  const prepared = getBodyHtml($);
+  const turndown = getTurndownService(options.stripLinks);
   return turndown.turndown(prepared);
 }

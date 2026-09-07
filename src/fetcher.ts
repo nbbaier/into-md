@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { detectNeedForBrowser } from "./auto-detect";
 import {
@@ -8,6 +8,8 @@ import {
   readFromCache,
   writeToCache,
 } from "./cache";
+import { convertHtmlToMarkdown } from "./converter";
+import { extractContent } from "./extractor";
 
 function extractionOptionsFrom(options: FetchOptions): ExtractionOptions {
   const result: ExtractionOptions = {};
@@ -128,16 +130,16 @@ function parseNetscapeCookieLine(
   };
 }
 
-function parseCookiesFile(cookiesPath?: string): {
+async function parseCookiesFile(cookiesPath?: string): Promise<{
   header: string | undefined;
   playwrightCookies: CookieRecord[];
-} {
+}> {
   if (!cookiesPath) {
     return { header: undefined, playwrightCookies: [] };
   }
   let content: string;
   try {
-    content = readFileSync(cookiesPath, "utf8");
+    content = await readFile(cookiesPath, "utf8");
   } catch (error) {
     throw new Error(
       `Unable to read cookies file "${basename(cookiesPath)}": ${String(error)}`,
@@ -172,7 +174,7 @@ async function fetchWithHttp(
     options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   );
 
-  const { header: cookiesHeader } = parseCookiesFile(options.cookiesPath);
+  const { header: cookiesHeader } = await parseCookiesFile(options.cookiesPath);
   const headers = new Headers({
     Accept: "text/markdown, text/html",
     "Accept-Encoding": "identity",
@@ -252,7 +254,7 @@ async function fetchWithBrowser(
     );
   }
 
-  const { playwrightCookies } = parseCookiesFile(options.cookiesPath);
+  const { playwrightCookies } = await parseCookiesFile(options.cookiesPath);
   const browser = await playwright.chromium.launch({ headless: true });
   try {
     const context = await browser.newContext({
@@ -446,7 +448,6 @@ async function fetchWithAutoDetect(
     };
   }
 
-  const { extractContent } = await import("./extractor");
   const extracted = extractContent(rawHtml, {
     baseUrl: finalUrl,
     raw: options.raw,
@@ -514,14 +515,12 @@ async function fetchWithMode(
   return fetchWithAutoDetect(url, options);
 }
 
-async function htmlToMarkdownPipeline(
+function htmlToMarkdownPipeline(
   html: string,
   finalUrl: string,
   options: FetchOptions,
   preExtracted?: PreExtractedContent
-): Promise<{ markdown: string; metadata: CacheMetadata }> {
-  const { convertHtmlToMarkdown } = await import("./converter");
-
+): { markdown: string; metadata: CacheMetadata } {
   let workingHtml: string;
   let metadata: CacheMetadata;
 
@@ -533,7 +532,6 @@ async function htmlToMarkdownPipeline(
       author: preExtracted.metadata.author,
     };
   } else {
-    const { extractContent } = await import("./extractor");
     const extracted = extractContent(html, {
       baseUrl: finalUrl,
       excludeSelectors: options.excludeSelectors,
