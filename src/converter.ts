@@ -1,6 +1,8 @@
 import { load } from "cheerio";
 import TurndownService from "turndown";
 
+import { annotateImagesDom } from "./images";
+import { convertTablesToJsonDom } from "./tables";
 import { getBodyHtml, toAbsoluteUrl } from "./utils";
 
 interface ConvertOptions {
@@ -8,34 +10,40 @@ interface ConvertOptions {
   stripLinks?: boolean;
 }
 
-function prepareDom(html: string, baseUrl: string): string {
+export function convertHtmlToMarkdown(
+  html: string,
+  options: ConvertOptions
+): string {
   const $ = load(html);
 
+  // 1. Convert tables to JSON pre blocks
+  convertTablesToJsonDom($);
+
+  // 2. Annotate images with captions and absolute URLs
+  annotateImagesDom($, options.baseUrl);
+
+  // 3. Absolutify link hrefs
   for (const el of $("a[href]").toArray()) {
     const $el = $(el);
-    const absolute = toAbsoluteUrl($el.attr("href"), baseUrl);
+    const absolute = toAbsoluteUrl($el.attr("href"), options.baseUrl);
     if (absolute) {
       $el.attr("href", absolute);
     }
   }
 
+  // 4. Absolutify image src (also done by annotateImages, kept for parity)
   for (const el of $("img[src]").toArray()) {
     const $el = $(el);
-    const absolute = toAbsoluteUrl($el.attr("src"), baseUrl);
+    const absolute = toAbsoluteUrl($el.attr("src"), options.baseUrl);
     if (absolute) {
       $el.attr("src", absolute);
     }
   }
 
+  // 5. Remove script and style elements
   $("script, style").remove();
-  return getBodyHtml($);
-}
 
-export function convertHtmlToMarkdown(
-  html: string,
-  options: ConvertOptions
-): string {
-  const prepared = prepareDom(html, options.baseUrl);
+  const prepared = getBodyHtml($);
   const turndown = new TurndownService({
     bulletListMarker: "-",
     codeBlockStyle: "fenced",

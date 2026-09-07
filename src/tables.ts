@@ -64,9 +64,7 @@ function extractRows(
   return rows;
 }
 
-export function convertTablesToJson(html: string): string {
-  const $ = load(html);
-
+export function convertTablesToJsonDom($: CheerioAPI): void {
   for (const table of $("table").toArray()) {
     const $table = $(table);
     const caption = $table.find("caption").first().text().trim() || undefined;
@@ -84,6 +82,10 @@ export function convertTablesToJson(html: string): string {
       .text(JSON.stringify(json, null, 2));
     $table.replaceWith(pre);
   }
+}
 
+export function convertTablesToJson(html: string): string {
+  const $ = load(html);
+  convertTablesToJsonDom($);
   return getBodyHtml($);
 }

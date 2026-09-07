@@ -1,10 +1,8 @@
-import { load } from "cheerio";
+import { type CheerioAPI, load } from "cheerio";
 
 import { getBodyHtml, toAbsoluteUrl } from "./utils";
 
-export function annotateImages(html: string, baseUrl: string): string {
-  const $ = load(html);
-
+export function annotateImagesDom($: CheerioAPI, baseUrl: string): void {
   for (const img of $("img").toArray()) {
     const $img = $(img);
     const src = $img.attr("src");
@@ -22,6 +20,10 @@ export function annotateImages(html: string, baseUrl: string): string {
       $img.attr("data-into-md-caption", caption);
     }
   }
+}
 
+export function annotateImages(html: string, baseUrl: string): string {
+  const $ = load(html);
+  annotateImagesDom($, baseUrl);
   return getBodyHtml($);
 }

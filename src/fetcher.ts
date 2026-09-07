@@ -520,8 +520,6 @@ async function htmlToMarkdownPipeline(
   options: FetchOptions,
   preExtracted?: PreExtractedContent
 ): Promise<{ markdown: string; metadata: CacheMetadata }> {
-  const { convertTablesToJson } = await import("./tables");
-  const { annotateImages } = await import("./images");
   const { convertHtmlToMarkdown } = await import("./converter");
 
   let workingHtml: string;
@@ -548,9 +546,6 @@ async function htmlToMarkdownPipeline(
       author: extracted.metadata.author,
     };
   }
-
-  workingHtml = convertTablesToJson(workingHtml);
-  workingHtml = annotateImages(workingHtml, finalUrl);
 
   const markdown = convertHtmlToMarkdown(workingHtml, {
     baseUrl: finalUrl,
