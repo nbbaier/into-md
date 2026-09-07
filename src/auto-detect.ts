@@ -17,9 +17,7 @@ const STAGE_2_STRUCTURAL_TAGS = [
 const SPA_ROOT_IDS = ["root", "app", "__next", "__nuxt", "__svelte"];
 const LOADING_INDICATORS = ["loading", "loading..."];
 
-function getBodyTextCount(html: string): number {
-  const dom = new JSDOM(html);
-  const { document } = dom.window;
+function getBodyTextCount(document: Document): number {
   const body = document.querySelector("body");
   if (!body) {
     return 0;
@@ -79,10 +77,7 @@ function hasMeaningfulChildren(element: HTMLElement): boolean {
   return false;
 }
 
-function isEmptyRootDiv(html: string): boolean {
-  const dom = new JSDOM(html);
-  const { document } = dom.window;
-
+function isEmptyRootDiv(document: Document): boolean {
   for (const rootId of SPA_ROOT_IDS) {
     const rootEl = document.getElementById(rootId);
     if (!rootEl) {
@@ -107,10 +102,7 @@ function isEmptyRootDiv(html: string): boolean {
   return false;
 }
 
-function hasNoscriptAndEmptyBody(html: string): boolean {
-  const dom = new JSDOM(html);
-  const { document } = dom.window;
-
+function hasNoscriptAndEmptyBody(document: Document): boolean {
   const noscripts = document.querySelectorAll("noscript");
   if (noscripts.length === 0) {
     return false;
@@ -135,14 +127,11 @@ function hasNoscriptAndEmptyBody(html: string): boolean {
     return false;
   }
 
-  const bodyTextCount = getBodyTextCount(html);
+  const bodyTextCount = getBodyTextCount(document);
   return bodyTextCount < STAGE_1_BODY_TEXT_MIN;
 }
 
-function isContentTooSparse(extractedHtml: string): boolean {
-  const dom = new JSDOM(extractedHtml);
-  const { document } = dom.window;
-
+function isContentTooSparse(document: Document): boolean {
   const textContent = document.body?.textContent?.trim() ?? "";
   if (textContent.length >= STAGE_2_CONTENT_MIN) {
     return false;
@@ -170,11 +159,14 @@ export function detectNeedForBrowser(
   const stage = options.stage ?? "both";
 
   if (stage !== "stage2") {
-    if (isEmptyRootDiv(rawHtml)) {
+    const dom = new JSDOM(rawHtml);
+    const { document } = dom.window;
+
+    if (isEmptyRootDiv(document)) {
       return { shouldFallback: true, reason: "Empty SPA root div detected" };
     }
 
-    if (hasNoscriptAndEmptyBody(rawHtml)) {
+    if (hasNoscriptAndEmptyBody(document)) {
       return {
         shouldFallback: true,
         reason: "Noscript with javascript and sparse body",
@@ -184,11 +176,15 @@ export function detectNeedForBrowser(
 
   if (stage !== "stage1" && !options.raw) {
     const hasExtracted = extractedHtml !== undefined && extractedHtml !== null;
-    if (hasExtracted && isContentTooSparse(extractedHtml)) {
-      return {
-        shouldFallback: true,
-        reason: "Extracted content is too sparse",
-      };
+    if (hasExtracted) {
+      const dom = new JSDOM(extractedHtml);
+      const { document } = dom.window;
+      if (isContentTooSparse(document)) {
+        return {
+          shouldFallback: true,
+          reason: "Extracted content is too sparse",
+        };
+      }
     }
   }
 
