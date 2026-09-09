@@ -45,7 +45,7 @@
     "release:patch": "npm version patch -m 'v%s' && bun run build",
     "start": "bun run src/index.ts",
     "test": "bun test",
-    "typecheck": "tsgo --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
