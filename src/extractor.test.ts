@@ -48,8 +48,8 @@ describe("extractContent raw mode", () => {
   it("removes nodes matched by excludeSelectors", () => {
     const { html } = extractContent(article, {
       baseUrl,
-      raw: true,
       excludeSelectors: ["nav.site-nav"],
+      raw: true,
     });
     expect(html).not.toContain("SHOULD NOT APPEAR");
   });

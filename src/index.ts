@@ -67,16 +67,16 @@ async function run(url: string, options: CliOptions) {
   const fetchResult = await fetchPage(url, {
     cookiesPath: options.cookies,
     encoding: options.encoding,
-    noCache: options.cache === false,
-    timeoutMs: options.timeout ?? DEFAULT_TIMEOUT,
-    mode,
-    raw: options.raw,
     excludeSelectors: selectors,
+    logBuffer: options.verbose ? verboseBuffer : undefined,
+    mode,
+    noCache: options.cache === false,
+    onStrategyResolved: strategyResolver,
+    raw: options.raw,
     stripLinks: options.stripLinks,
+    timeoutMs: options.timeout ?? DEFAULT_TIMEOUT,
     userAgent: options.userAgent,
     verbose: options.verbose,
-    logBuffer: options.verbose ? verboseBuffer : undefined,
-    onStrategyResolved: strategyResolver,
   });
   strategyResolver(fetchResult.strategyUsed);
 
@@ -93,9 +93,9 @@ async function run(url: string, options: CliOptions) {
   const frontmatter = buildFrontmatter({
     ...serverFields,
     ...fetchResult.metadata,
+    extraFields: serverFields,
     source: fetchResult.finalUrl,
     strategy: frontmatterStrategy,
-    extraFields: serverFields,
   });
 
   const output = `${frontmatter}\n\n${strippedMarkdown}`.trim();

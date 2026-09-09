@@ -107,12 +107,7 @@ function parseNetscapeCookieLine(
     return null;
   }
 
-  const domain = parts[0];
-  const path = parts[2];
-  const secureFlag = parts[3];
-  const expires = parts[4];
-  const name = parts[5];
-  const value = parts[6];
+  const [domain, , path, secureFlag, expires, name, value] = parts;
   if (!(domain && path && secureFlag && expires && name && value)) {
     return null;
   }
@@ -307,15 +302,17 @@ async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
   let pw: typeof import("playwright");
   try {
     pw = await import("playwright");
-  } catch {
-    throw new Error("JS mode requested but playwright is not installed");
+  } catch (error) {
+    throw new Error("JS mode requested but playwright is not installed", {
+      cause: error,
+    });
   }
 
   try {
     const browser = await pw.chromium.launch({ headless: true });
     await browser.close();
     browserVerified = true;
-  } catch {
+  } catch (error) {
     if (process.stdin.isTTY && !process.env.CI) {
       const readline = await import("node:readline");
       const rl = readline.createInterface({
@@ -341,12 +338,14 @@ async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
       }
 
       throw new Error(
-        "Browser binaries not found. Run `bunx playwright install chromium`"
+        "Browser binaries not found. Run `bunx playwright install chromium`",
+        { cause: error }
       );
     }
 
     throw new Error(
-      "Browser binaries not found. Run `bunx playwright install chromium`"
+      "Browser binaries not found. Run `bunx playwright install chromium`",
+      { cause: error }
     );
   }
 }
@@ -370,11 +369,11 @@ async function tryGetFromCache(
 
   logVerbose("Cache hit", options);
   return {
-    markdown: cached.markdown,
     finalUrl: cached.finalUrl,
     fromCache: true,
-    strategyUsed: "static",
+    markdown: cached.markdown,
     metadata: cached.metadata,
+    strategyUsed: "static",
   };
 }
 
@@ -409,29 +408,28 @@ async function fetchWithAutoDetect(
 
   if (staticResult.strategyUsed === "markdown") {
     return {
-      html: "",
       finalUrl: staticResult.finalUrl,
-      strategy: "markdown",
+      html: "",
       markdown: staticResult.markdown,
       markdownTokens: staticResult.markdownTokens,
+      strategy: "markdown",
     };
   }
 
-  const rawHtml = staticResult.html;
-  const finalUrl = staticResult.finalUrl;
+  const { html: rawHtml, finalUrl } = staticResult;
 
   if (
     staticResult.contentType &&
     !HTML_CONTENT_TYPE_RE.test(staticResult.contentType)
   ) {
     logVerbose("Auto-detect: non-HTML content type, using static", options);
-    return { html: rawHtml, finalUrl, strategy: "static" };
+    return { finalUrl, html: rawHtml, strategy: "static" };
   }
 
   const stage1 = detectNeedForBrowser(rawHtml, null, {
-    verbose: options.verbose,
     raw: options.raw,
     stage: "stage1",
+    verbose: options.verbose,
   });
 
   if (stage1.shouldFallback) {
@@ -442,8 +440,8 @@ async function fetchWithAutoDetect(
     await ensureBrowserInstalled(options.verbose);
     const browserResult = await fetchWithBrowser(url, options);
     return {
-      html: browserResult.html,
       finalUrl: browserResult.finalUrl,
+      html: browserResult.html,
       strategy: "headless",
     };
   }
@@ -455,9 +453,9 @@ async function fetchWithAutoDetect(
   const extractedHtml = extracted.html;
 
   const stage2 = detectNeedForBrowser(rawHtml, extractedHtml, {
-    verbose: options.verbose,
     raw: options.raw,
     stage: "stage2",
+    verbose: options.verbose,
   });
 
   if (stage2.shouldFallback) {
@@ -468,18 +466,18 @@ async function fetchWithAutoDetect(
     await ensureBrowserInstalled(options.verbose);
     const browserResult = await fetchWithBrowser(url, options);
     return {
-      html: browserResult.html,
       finalUrl: browserResult.finalUrl,
+      html: browserResult.html,
       strategy: "headless",
     };
   }
 
   logVerbose("Auto-detect: content is sufficient, using static", options);
   return {
-    html: rawHtml,
     finalUrl,
-    strategy: "static",
+    html: rawHtml,
     preExtracted: { html: extractedHtml, metadata: extracted.metadata },
+    strategy: "static",
   };
 }
 
@@ -492,22 +490,22 @@ async function fetchWithMode(
     const result = await fetchWithHttp(url, options);
     if (result.strategyUsed === "markdown") {
       return {
-        html: "",
         finalUrl: result.finalUrl,
-        strategy: "markdown",
+        html: "",
         markdown: result.markdown,
         markdownTokens: result.markdownTokens,
+        strategy: "markdown",
       };
     }
-    return { html: result.html, finalUrl: result.finalUrl, strategy: "static" };
+    return { finalUrl: result.finalUrl, html: result.html, strategy: "static" };
   }
 
   if (mode === "headless") {
     await ensureBrowserInstalled(options.verbose);
     const result = await fetchWithBrowser(url, options);
     return {
-      html: result.html,
       finalUrl: result.finalUrl,
+      html: result.html,
       strategy: "headless",
     };
   }
@@ -527,9 +525,9 @@ function htmlToMarkdownPipeline(
   if (preExtracted && !options.excludeSelectors?.length) {
     workingHtml = preExtracted.html;
     metadata = {
-      title: preExtracted.metadata.title,
-      description: preExtracted.metadata.description,
       author: preExtracted.metadata.author,
+      description: preExtracted.metadata.description,
+      title: preExtracted.metadata.title,
     };
   } else {
     const extracted = extractContent(html, {
@@ -539,9 +537,9 @@ function htmlToMarkdownPipeline(
     });
     workingHtml = extracted.html;
     metadata = {
-      title: extracted.metadata.title,
-      description: extracted.metadata.description,
       author: extracted.metadata.author,
+      description: extracted.metadata.description,
+      title: extracted.metadata.title,
     };
   }
 
@@ -573,8 +571,7 @@ async function orchestrateFetch(
 
   if (result.markdown) {
     // Server returned markdown directly (content negotiation)
-    markdown = result.markdown;
-    markdownTokens = result.markdownTokens;
+    ({ markdown, markdownTokens } = result);
   } else {
     // Run extract→convert pipeline on HTML
     const converted = await htmlToMarkdownPipeline(
@@ -583,8 +580,7 @@ async function orchestrateFetch(
       options,
       result.preExtracted
     );
-    markdown = converted.markdown;
-    metadata = converted.metadata;
+    ({ markdown, metadata } = converted);
   }
 
   if (!options.noCache) {
@@ -599,12 +595,12 @@ async function orchestrateFetch(
   }
 
   return {
-    markdown,
     finalUrl: result.finalUrl,
     fromCache: false,
-    strategyUsed: result.strategy,
-    metadata,
+    markdown,
     markdownTokens,
+    metadata,
+    strategyUsed: result.strategy,
   };
 }
 

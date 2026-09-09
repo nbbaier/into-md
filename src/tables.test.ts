@@ -26,7 +26,7 @@ describe("convertTablesToJson", () => {
     const out = convertTablesToJson(html);
     const json = extractTableJson(out);
     expect(json.headers).toEqual(["Name", "Age"]);
-    expect(json.rows).toEqual([{ Name: "Ada", Age: "36" }]);
+    expect(json.rows).toEqual([{ Age: "36", Name: "Ada" }]);
   });
 
   it("falls back to the first row for headers when there is no thead", () => {

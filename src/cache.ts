@@ -128,12 +128,12 @@ export async function writeToCache(
   const target = buildCachePath(url, cacheDir, extraction);
   await mkdir(dirname(target), { recursive: true });
   const payload: CachedResponse = {
-    url,
+    cacheVersion: 2,
+    fetchedAt: Date.now(),
     finalUrl,
     markdown,
     metadata,
-    fetchedAt: Date.now(),
-    cacheVersion: 2,
+    url,
   };
   await writeFile(target, JSON.stringify(payload, null, 2), "utf8");
 }

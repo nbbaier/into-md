@@ -84,7 +84,7 @@ describe("cache key with extraction options", () => {
       const miss = await readFromCache(url, { cacheDir: testCacheDir });
       expect(miss).toBeNull();
     } finally {
-      await rm(testCacheDir, { recursive: true, force: true });
+      await rm(testCacheDir, { force: true, recursive: true });
     }
   });
 });
@@ -95,16 +95,16 @@ describe("cache backward compatibility", () => {
   });
 
   afterEach(async () => {
-    await rm(testCacheDir, { recursive: true, force: true });
+    await rm(testCacheDir, { force: true, recursive: true });
   });
 
   it("rejects old cache entries without cacheVersion as cache miss", async () => {
     const url = "https://example.com/old-entry";
     const oldEntry = {
-      url,
-      fetchedAt: Date.now(),
       content: "<html><body>Old content</body></html>",
+      fetchedAt: Date.now(),
       strategy: "static",
+      url,
     };
 
     const hash = (await import("node:crypto"))
@@ -142,7 +142,7 @@ describe("cache backward compatibility", () => {
       url,
       "# Test",
       finalUrl,
-      { title: "Test Title", description: "A description", author: "Author" },
+      { author: "Author", description: "A description", title: "Test Title" },
       { cacheDir: testCacheDir }
     );
 

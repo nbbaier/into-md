@@ -33,8 +33,8 @@ describe("parseFrontmatter", () => {
 describe("buildFrontmatter", () => {
   it("emits known fields with source last", () => {
     const fm = buildFrontmatter({
-      title: "T",
       source: "https://example.com",
+      title: "T",
     });
     expect(fm.startsWith("---\n")).toBe(true);
     expect(fm.endsWith("\n---")).toBe(true);
@@ -43,14 +43,14 @@ describe("buildFrontmatter", () => {
   });
 
   it("escapes embedded double quotes", () => {
-    const fm = buildFrontmatter({ title: 'a "quote"', source: "s" });
+    const fm = buildFrontmatter({ source: "s", title: 'a "quote"' });
     expect(fm).toContain(String.raw`title: "a \"quote\""`);
   });
 
   it("emits unknown extra fields ahead of the known ones", () => {
     const fm = buildFrontmatter({
-      source: "s",
       extraFields: { custom: "v" },
+      source: "s",
     });
     expect(fm).toContain('custom: "v"');
     expect(fm.indexOf("custom:")).toBeLessThan(fm.indexOf("source:"));
@@ -58,9 +58,9 @@ describe("buildFrontmatter", () => {
 
   it("round-trips simple values through parse", () => {
     const fm = buildFrontmatter({
-      title: "Round Trip",
       author: "Ada",
       source: "https://example.com/a",
+      title: "Round Trip",
     });
     const { fields } = parseFrontmatter(`${fm}\nbody`);
     expect(fields.title).toBe("Round Trip");

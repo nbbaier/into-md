@@ -16,7 +16,7 @@ export function parseFrontmatter(markdown: string): {
 } {
   const match = FRONTMATTER_REGEX.exec(markdown);
   if (!match) {
-    return { fields: {}, body: markdown };
+    return { body: markdown, fields: {} };
   }
 
   const fields: Record<string, string> = {};
@@ -42,7 +42,7 @@ export function parseFrontmatter(markdown: string): {
   }
 
   const body = markdown.slice(match[0].length);
-  return { fields, body };
+  return { body, fields };
 }
 
 export function buildFrontmatter(meta: FrontmatterInput): string {

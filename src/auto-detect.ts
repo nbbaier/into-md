@@ -163,13 +163,13 @@ export function detectNeedForBrowser(
     const { document } = dom.window;
 
     if (isEmptyRootDiv(document)) {
-      return { shouldFallback: true, reason: "Empty SPA root div detected" };
+      return { reason: "Empty SPA root div detected", shouldFallback: true };
     }
 
     if (hasNoscriptAndEmptyBody(document)) {
       return {
-        shouldFallback: true,
         reason: "Noscript with javascript and sparse body",
+        shouldFallback: true,
       };
     }
   }
@@ -181,8 +181,8 @@ export function detectNeedForBrowser(
       const { document } = dom.window;
       if (isContentTooSparse(document)) {
         return {
-          shouldFallback: true,
           reason: "Extracted content is too sparse",
+          shouldFallback: true,
         };
       }
     }

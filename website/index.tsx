@@ -64,7 +64,10 @@ app.get("/", (c) =>
         />
         <meta charset="UTF-8" />
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" />
+        <script
+          async
+          src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"
+        />
         <link href="https://fonts.googleapis.com" rel="preconnect" />
         <link crossOrigin href="https://fonts.gstatic.com" rel="preconnect" />
         <link

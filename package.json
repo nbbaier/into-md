@@ -1,9 +1,8 @@
 {
   "name": "into-md",
+  "version": "1.0.1",
   "private": false,
   "description": "CLI to fetch clean urls as clean markdown for LLMs",
-  "license": "MIT",
-  "author": "Nico Baier <nico.baier@gmail.com> (https://github.com/nbbaier)",
   "keywords": [
     "markdown",
     "html-to-markdown",
@@ -14,37 +13,39 @@
     "cli",
     "playwright"
   ],
-  "files": [
-    "dist",
-    "CHANGELOG.md"
-  ],
-  "bin": {
-    "into-md": "dist/index.mjs"
+  "homepage": "https://github.com/nbbaier/into-md#readme",
+  "bugs": {
+    "url": "https://github.com/nbbaier/into-md/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nbbaier/into-md.git"
   },
-  "homepage": "https://github.com/nbbaier/into-md#readme",
-  "bugs": {
-    "url": "https://github.com/nbbaier/into-md/issues"
-  },
+  "license": "MIT",
+  "author": "Nico Baier <nico.baier@gmail.com> (https://github.com/nbbaier)",
   "type": "module",
   "module": "src/index.ts",
+  "bin": {
+    "into-md": "dist/index.mjs"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "dev": "alchemy dev --stage dev",
-    "deploy": "alchemy deploy --stage prod",
-    "destroy": "alchemy destroy",
-    "start": "bun run src/index.ts",
     "build": "tsdown",
     "build:watch": "tsdown --watch",
-    "test": "bun test",
     "check": "ultracite check",
+    "deploy": "alchemy deploy --stage prod",
+    "destroy": "alchemy destroy",
+    "dev": "alchemy dev --stage dev",
     "fix": "ultracite fix",
-    "typecheck": "tsgo --noEmit",
-    "release:minor": "npm version minor -m 'v%s' && bun run build",
     "release:major": "npm version major -m 'v%s' && bun run build",
-    "release:patch": "npm version patch -m 'v%s' && bun run build"
+    "release:minor": "npm version minor -m 'v%s' && bun run build",
+    "release:patch": "npm version patch -m 'v%s' && bun run build",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsgo --noEmit"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
@@ -66,6 +67,5 @@
   },
   "peerDependencies": {
     "typescript": "^7.0.2"
-  },
-  "version": "1.0.1"
+  }
 }
