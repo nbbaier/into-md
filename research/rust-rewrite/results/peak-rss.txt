@@ -1,0 +1,4 @@
+small-hn node=193.6 bun=226.6 rust=9.9
+medium-essay node=202.0 bun=285.3 rust=9.9
+large-mdn node=234.7 bun=322.9 rust=11.5
+xlarge-wiki node=477.2 bun=690.7 rust=29.8

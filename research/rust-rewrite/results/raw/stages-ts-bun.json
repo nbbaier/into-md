@@ -1,0 +1,68 @@
+[
+  {
+    "fixture": "large-mdn",
+    "kb": 239,
+    "firstRunMs": 1210.7,
+    "stage1": 107.9,
+    "extract": 491.6,
+    "stage2": 57.6,
+    "convert": 43.2,
+    "totalMs": 700.2,
+    "mdKb": 60
+  },
+  {
+    "fixture": "large-pydocs",
+    "kb": 173,
+    "firstRunMs": 1122.5,
+    "stage1": 144,
+    "extract": 694.6,
+    "stage2": 101.6,
+    "convert": 76.9,
+    "totalMs": 1030.5,
+    "mdKb": 57
+  },
+  {
+    "fixture": "medium-blog",
+    "kb": 95,
+    "firstRunMs": 377.6,
+    "stage1": 74.1,
+    "extract": 290.6,
+    "stage2": 66.9,
+    "convert": 26.3,
+    "totalMs": 464.6,
+    "mdKb": 39
+  },
+  {
+    "fixture": "medium-essay",
+    "kb": 78,
+    "firstRunMs": 767,
+    "stage1": 82.4,
+    "extract": 206.4,
+    "stage2": 50.1,
+    "convert": 103.9,
+    "totalMs": 453.6,
+    "mdKb": 67
+  },
+  {
+    "fixture": "small-hn",
+    "kb": 34,
+    "firstRunMs": 217,
+    "stage1": 36.1,
+    "extract": 120.6,
+    "stage2": 25,
+    "convert": 6.2,
+    "totalMs": 187.8,
+    "mdKb": 9
+  },
+  {
+    "fixture": "xlarge-wiki",
+    "kb": 1024,
+    "firstRunMs": 3985,
+    "stage1": 507.3,
+    "extract": 2059.6,
+    "stage2": 294.9,
+    "convert": 434.2,
+    "totalMs": 3923.2,
+    "mdKb": 162
+  }
+]

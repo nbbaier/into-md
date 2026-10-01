@@ -1,0 +1,6 @@
+large-mdn      ts_words=  8786 rs_words=  8739 similarity=0.994
+large-pydocs   ts_words=  8413 rs_words=  8229 similarity=0.948
+medium-blog    ts_words=  5071 rs_words=  5071 similarity=1.000
+medium-essay   ts_words= 12479 rs_words= 12479 similarity=0.998
+small-hn       ts_words=  1173 rs_words=  1173 similarity=1.000
+xlarge-wiki    ts_words= 23805 rs_words= 23670 similarity=0.987

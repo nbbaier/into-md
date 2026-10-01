@@ -1,0 +1,56 @@
+[
+  {
+    "fixture": "large-mdn",
+    "firstRunMs": 344.7,
+    "stage1": 10.2,
+    "extract": 86.7,
+    "stage2": 0,
+    "convert": 59.6,
+    "totalMs": 155.7
+  },
+  {
+    "fixture": "large-pydocs",
+    "firstRunMs": 301.2,
+    "stage1": 21.5,
+    "extract": 154,
+    "stage2": 0,
+    "convert": 91.5,
+    "totalMs": 273.7
+  },
+  {
+    "fixture": "medium-blog",
+    "firstRunMs": 98.1,
+    "stage1": 8.2,
+    "extract": 43.4,
+    "stage2": 0,
+    "convert": 23.7,
+    "totalMs": 81.7
+  },
+  {
+    "fixture": "medium-essay",
+    "firstRunMs": 89.8,
+    "stage1": 2.5,
+    "extract": 21.8,
+    "stage2": 0,
+    "convert": 29.1,
+    "totalMs": 54.4
+  },
+  {
+    "fixture": "small-hn",
+    "firstRunMs": 38,
+    "stage1": 4.6,
+    "extract": 20.9,
+    "stage2": 0,
+    "convert": 5.2,
+    "totalMs": 34.1
+  },
+  {
+    "fixture": "xlarge-wiki",
+    "firstRunMs": 757.1,
+    "stage1": 57.7,
+    "extract": 353.8,
+    "stage2": 0,
+    "convert": 299.9,
+    "totalMs": 731.8
+  }
+]

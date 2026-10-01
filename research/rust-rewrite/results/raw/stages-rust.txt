@@ -1,0 +1,6 @@
+large-mdn {"firstRunMs":50.6,"stage1":4.3,"extract":17.9,"stage2":1.7,"convert":2.6,"totalMs":26.4,"mdKb":59}
+large-pydocs {"firstRunMs":47.7,"stage1":5.6,"extract":28.3,"stage2":3.6,"convert":5,"totalMs":43.2,"mdKb":56}
+medium-blog {"firstRunMs":24.8,"stage1":2.7,"extract":11.2,"stage2":2.2,"convert":2.8,"totalMs":19.3,"mdKb":39}
+medium-essay {"firstRunMs":11.1,"stage1":0.7,"extract":7.9,"stage2":0.4,"convert":1,"totalMs":10,"mdKb":66}
+small-hn {"firstRunMs":10.9,"stage1":1.1,"extract":4.5,"stage2":0.8,"convert":1,"totalMs":7.6,"mdKb":9}
+xlarge-wiki {"firstRunMs":186.6,"stage1":20.9,"extract":106.1,"stage2":22.1,"convert":25.6,"totalMs":175,"mdKb":162}

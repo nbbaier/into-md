@@ -1,0 +1,6 @@
+Benchmark 1: imports: jsdom+cheerio+turndown+readability+commander (today)
+  Time (mean ± σ):     889.6 ms ±  36.2 ms    [User: 995.9 ms, System: 148.4 ms]
+Benchmark 2: imports: linkedom+cheerio+turndown+readability+commander
+  Time (mean ± σ):     318.8 ms ±  14.3 ms    [User: 392.2 ms, System: 48.5 ms]
+Benchmark 3: imports: linkedom+turndown+readability+commander (no cheerio)
+  Time (mean ± σ):     185.1 ms ±   8.5 ms    [User: 203.4 ms, System: 31.0 ms]

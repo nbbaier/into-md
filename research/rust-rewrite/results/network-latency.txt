@@ -1,0 +1,4 @@
+https://news.ycombinator.com/: 0.745414 0.708760 0.429193
+https://www.paulgraham.com/greatwork.html: 0.313657 0.401027 0.244708
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array: 0.348103 0.253497 0.198044
+https://en.wikipedia.org/wiki/Rust_(programming_language): 0.219759 0.231682 0.219137
