@@ -19,6 +19,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Accepting the Chromium install prompt now works under Node: it runs
+  Playwright's CLI with the current runtime instead of importing `bun`.
 - Table-to-JSON conversion no longer mixes rows and cells of nested tables
   into the outer table (visible mostly with `--raw` on layout-table pages).
 

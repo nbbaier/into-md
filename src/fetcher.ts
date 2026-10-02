@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { Browser } from "playwright";
 import {
   type CacheMetadata,
@@ -323,7 +323,7 @@ async function offerBrowserInstall(launchError: unknown): Promise<void> {
   });
   const answer = await new Promise<string>((resolve) => {
     rl.question(
-      "Browser binaries not found. Run `bunx playwright install chromium`? (y/n) ",
+      "Browser binaries not found. Install Chromium now (`playwright install chromium`)? (y/n) ",
       resolve
     );
   });
@@ -334,8 +334,26 @@ async function offerBrowserInstall(launchError: unknown): Promise<void> {
   }
 
   console.error("Installing chromium...");
-  const { $ } = await import("bun");
-  await $`bunx playwright install chromium`;
+  // Run playwright's own CLI with the current runtime (node or bun) so the
+  // install works however into-md was launched.
+  const { createRequire } = await import("node:module");
+  const { spawn } = await import("node:child_process");
+  const cliPath = join(
+    dirname(createRequire(import.meta.url).resolve("playwright/package.json")),
+    "cli.js"
+  );
+  const exitCode = await new Promise<number | null>((resolve, reject) => {
+    spawn(process.execPath, [cliPath, "install", "chromium"], {
+      stdio: "inherit",
+    })
+      .on("error", reject)
+      .on("exit", resolve);
+  });
+  if (exitCode !== 0) {
+    throw new Error(`Chromium install failed (exit code ${exitCode})`, {
+      cause: launchError,
+    });
+  }
 }
 
 async function tryGetFromCache(
