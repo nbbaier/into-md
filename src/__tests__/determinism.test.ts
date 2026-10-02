@@ -2,8 +2,6 @@ import { describe, expect, it } from "bun:test";
 
 import { convertHtmlToMarkdown } from "../converter";
 import { extractContent } from "../extractor";
-import { annotateImages } from "../images";
-import { convertTablesToJson } from "../tables";
 
 const BASE_URL = "https://example.com";
 
@@ -15,9 +13,7 @@ function runPipeline(
     baseUrl: BASE_URL,
     raw: options.raw,
   });
-  const withTables = convertTablesToJson(extracted.html);
-  const withImages = annotateImages(withTables, BASE_URL);
-  return convertHtmlToMarkdown(withImages, {
+  return convertHtmlToMarkdown(extracted.html, {
     baseUrl: BASE_URL,
     stripLinks: options.stripLinks,
   });

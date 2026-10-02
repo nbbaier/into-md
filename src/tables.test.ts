@@ -1,8 +1,16 @@
 import { describe, expect, it } from "bun:test";
+import { load } from "cheerio";
 import { convertHtmlToMarkdown } from "./converter";
-import { convertTablesToJson } from "./tables";
+import { convertTablesToJsonDom } from "./tables";
+import { getBodyHtml } from "./utils";
 
 const TABLE_PRE = /<pre data-into-md-table="true">([\s\S]*?)<\/pre>/;
+
+function convertTables(html: string) {
+  const $ = load(html);
+  convertTablesToJsonDom($);
+  return getBodyHtml($);
+}
 
 function extractTableJson(html: string) {
   const match = TABLE_PRE.exec(html);
@@ -23,7 +31,7 @@ describe("convertTablesToJson", () => {
     const html =
       "<table><thead><tr><th>Name</th><th>Age</th></tr></thead>" +
       "<tbody><tr><td>Ada</td><td>36</td></tr></tbody></table>";
-    const out = convertTablesToJson(html);
+    const out = convertTables(html);
     const json = extractTableJson(out);
     expect(json.headers).toEqual(["Name", "Age"]);
     expect(json.rows).toEqual([{ Age: "36", Name: "Ada" }]);
@@ -33,7 +41,7 @@ describe("convertTablesToJson", () => {
     const html =
       "<table><tr><th>A</th><th>B</th></tr>" +
       "<tr><td>1</td><td>2</td></tr></table>";
-    const json = extractTableJson(convertTablesToJson(html));
+    const json = extractTableJson(convertTables(html));
     expect(json.headers).toEqual(["A", "B"]);
     // The header row must not leak in as a data row.
     expect(json.rows).toEqual([{ A: "1", B: "2" }]);
@@ -51,7 +59,7 @@ describe("convertTablesToJson", () => {
       "<table><tbody><tr><th>H</th></tr><tr><td>d</td></tr></tbody></table>",
     ];
     for (const html of shapes) {
-      const json = extractTableJson(convertTablesToJson(html));
+      const json = extractTableJson(convertTables(html));
       expect(json.headers).toEqual(["H"]);
       expect(json.rows).toEqual([{ H: "d" }]);
     }
@@ -61,7 +69,7 @@ describe("convertTablesToJson", () => {
     const html =
       "<table><caption>People</caption><thead><tr><th>Name</th></tr></thead>" +
       "<tbody><tr><td>Ada</td></tr></tbody></table>";
-    const json = extractTableJson(convertTablesToJson(html));
+    const json = extractTableJson(convertTables(html));
     expect(json.caption).toBe("People");
   });
 
@@ -69,7 +77,7 @@ describe("convertTablesToJson", () => {
     const html =
       "<table><thead><tr><th>K</th></tr></thead>" +
       "<tbody><tr><td>v</td></tr></tbody></table>";
-    const md = convertHtmlToMarkdown(convertTablesToJson(html), {
+    const md = convertHtmlToMarkdown(html, {
       baseUrl: "https://example.com",
     });
     expect(md).toContain("```json");
