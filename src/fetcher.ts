@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
-import { detectNeedForBrowser } from "./auto-detect";
+import { basename, dirname, join } from "node:path";
+import type { Browser } from "playwright";
 import {
   type CacheMetadata,
   type CacheOptions,
@@ -8,8 +8,9 @@ import {
   readFromCache,
   writeToCache,
 } from "./cache";
-import { convertHtmlToMarkdown } from "./converter";
-import { extractContent } from "./extractor";
+// The HTML pipeline (linkedom, Readability, Turndown) is imported lazily so
+// that cache hits and markdown responses never pay for loading it.
+import type { ExtractedContent } from "./extractor";
 
 function extractionOptionsFrom(options: FetchOptions): ExtractionOptions {
   const result: ExtractionOptions = {};
@@ -27,8 +28,6 @@ function extractionOptionsFrom(options: FetchOptions): ExtractionOptions {
   }
   return result;
 }
-
-let browserVerified = false;
 
 type RenderMode = "auto" | "static" | "headless";
 
@@ -250,7 +249,7 @@ async function fetchWithBrowser(
   }
 
   const { playwrightCookies } = await parseCookiesFile(options.cookiesPath);
-  const browser = await playwright.chromium.launch({ headless: true });
+  const browser = await launchBrowser(playwright);
   try {
     const context = await browser.newContext({
       userAgent: options.userAgent ?? DEFAULT_USER_AGENT,
@@ -294,59 +293,66 @@ async function fetchWithBrowser(
   }
 }
 
-async function ensureBrowserInstalled(_verbose?: boolean): Promise<void> {
-  if (browserVerified) {
-    return;
+const MISSING_BROWSER_MESSAGE =
+  "Browser binaries not found. Run `bunx playwright install chromium`";
+
+/**
+ * Launches Chromium. A launch failure is treated as missing browser binaries:
+ * interactive users are offered an install, after which the launch is retried.
+ */
+async function launchBrowser(
+  playwright: typeof import("playwright")
+): Promise<Browser> {
+  try {
+    return await playwright.chromium.launch({ headless: true });
+  } catch (error) {
+    await offerBrowserInstall(error);
+    return await playwright.chromium.launch({ headless: true });
+  }
+}
+
+async function offerBrowserInstall(launchError: unknown): Promise<void> {
+  if (!process.stdin.isTTY || process.env.CI) {
+    throw new Error(MISSING_BROWSER_MESSAGE, { cause: launchError });
   }
 
-  let pw: typeof import("playwright");
-  try {
-    pw = await import("playwright");
-  } catch (error) {
-    throw new Error("JS mode requested but playwright is not installed", {
-      cause: error,
-    });
-  }
-
-  try {
-    const browser = await pw.chromium.launch({ headless: true });
-    await browser.close();
-    browserVerified = true;
-  } catch (error) {
-    if (process.stdin.isTTY && !process.env.CI) {
-      const readline = await import("node:readline");
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stderr,
-      });
-
-      const answer = await new Promise<string>((resolve) => {
-        rl.question(
-          "Browser binaries not found. Run `bunx playwright install chromium`? (y/n) ",
-          resolve
-        );
-      });
-
-      rl.close();
-
-      if (answer.toLowerCase() === "y") {
-        console.error("Installing chromium...");
-        const { $ } = await import("bun");
-        await $`bunx playwright install chromium`;
-        browserVerified = true;
-        return;
-      }
-
-      throw new Error(
-        "Browser binaries not found. Run `bunx playwright install chromium`",
-        { cause: error }
-      );
-    }
-
-    throw new Error(
-      "Browser binaries not found. Run `bunx playwright install chromium`",
-      { cause: error }
+  const readline = await import("node:readline");
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stderr,
+  });
+  const answer = await new Promise<string>((resolve) => {
+    rl.question(
+      "Browser binaries not found. Install Chromium now (`playwright install chromium`)? (y/n) ",
+      resolve
     );
+  });
+  rl.close();
+
+  if (answer.toLowerCase() !== "y") {
+    throw new Error(MISSING_BROWSER_MESSAGE, { cause: launchError });
+  }
+
+  console.error("Installing chromium...");
+  // Run playwright's own CLI with the current runtime (node or bun) so the
+  // install works however into-md was launched.
+  const { createRequire } = await import("node:module");
+  const { spawn } = await import("node:child_process");
+  const cliPath = join(
+    dirname(createRequire(import.meta.url).resolve("playwright/package.json")),
+    "cli.js"
+  );
+  const exitCode = await new Promise<number | null>((resolve, reject) => {
+    spawn(process.execPath, [cliPath, "install", "chromium"], {
+      stdio: "inherit",
+    })
+      .on("error", reject)
+      .on("exit", resolve);
+  });
+  if (exitCode !== 0) {
+    throw new Error(`Chromium install failed (exit code ${exitCode})`, {
+      cause: launchError,
+    });
   }
 }
 
@@ -380,22 +386,22 @@ async function tryGetFromCache(
 const HTML_CONTENT_TYPE_RE = /text\/html|application\/xhtml\+xml/i;
 const MARKDOWN_CONTENT_TYPE_RE = /text\/markdown/i;
 
-interface PreExtractedContent {
-  html: string;
-  metadata: {
-    author?: string;
-    description?: string;
-    title?: string;
-  };
-}
-
 interface FetchModeResult {
+  /** Content already extracted while auto-detecting, ready to convert */
+  extracted?: ExtractedContent;
   finalUrl: string;
   html: string;
   markdown?: string;
   markdownTokens?: number;
-  preExtracted?: PreExtractedContent;
   strategy: "static" | "headless" | "markdown";
+}
+
+async function fetchHeadless(
+  url: string,
+  options: FetchOptions
+): Promise<FetchModeResult> {
+  const result = await fetchWithBrowser(url, options);
+  return { finalUrl: result.finalUrl, html: result.html, strategy: "headless" };
 }
 
 async function fetchWithAutoDetect(
@@ -426,7 +432,17 @@ async function fetchWithAutoDetect(
     return { finalUrl, html: rawHtml, strategy: "static" };
   }
 
-  const stage1 = detectNeedForBrowser(rawHtml, null, {
+  const [{ detectNeedForBrowser }, { extractContent }, { parseDocument }] =
+    await Promise.all([
+      import("./auto-detect"),
+      import("./extractor"),
+      import("./utils"),
+    ]);
+
+  // Parse once; detection, metadata, exclusion and extraction share it.
+  const document = parseDocument(rawHtml);
+
+  const stage1 = detectNeedForBrowser(document, null, {
     raw: options.raw,
     stage: "stage1",
     verbose: options.verbose,
@@ -437,22 +453,16 @@ async function fetchWithAutoDetect(
       `Auto-detect: ${stage1.reason}, falling back to headless`,
       options
     );
-    await ensureBrowserInstalled(options.verbose);
-    const browserResult = await fetchWithBrowser(url, options);
-    return {
-      finalUrl: browserResult.finalUrl,
-      html: browserResult.html,
-      strategy: "headless",
-    };
+    return fetchHeadless(url, options);
   }
 
-  const extracted = extractContent(rawHtml, {
+  // Stage 2 judges the page itself, so it runs before --exclude is applied.
+  let extracted = extractContent(document, {
     baseUrl: finalUrl,
     raw: options.raw,
   });
-  const extractedHtml = extracted.html;
 
-  const stage2 = detectNeedForBrowser(rawHtml, extractedHtml, {
+  const stage2 = detectNeedForBrowser(document, extracted.content, {
     raw: options.raw,
     stage: "stage2",
     verbose: options.verbose,
@@ -463,22 +473,19 @@ async function fetchWithAutoDetect(
       `Auto-detect: ${stage2.reason}, falling back to headless`,
       options
     );
-    await ensureBrowserInstalled(options.verbose);
-    const browserResult = await fetchWithBrowser(url, options);
-    return {
-      finalUrl: browserResult.finalUrl,
-      html: browserResult.html,
-      strategy: "headless",
-    };
+    return fetchHeadless(url, options);
+  }
+
+  if (options.excludeSelectors?.length) {
+    extracted = extractContent(document, {
+      baseUrl: finalUrl,
+      excludeSelectors: options.excludeSelectors,
+      raw: options.raw,
+    });
   }
 
   logVerbose("Auto-detect: content is sufficient, using static", options);
-  return {
-    finalUrl,
-    html: rawHtml,
-    preExtracted: { html: extractedHtml, metadata: extracted.metadata },
-    strategy: "static",
-  };
+  return { extracted, finalUrl, html: rawHtml, strategy: "static" };
 }
 
 async function fetchWithMode(
@@ -501,54 +508,36 @@ async function fetchWithMode(
   }
 
   if (mode === "headless") {
-    await ensureBrowserInstalled(options.verbose);
-    const result = await fetchWithBrowser(url, options);
-    return {
-      finalUrl: result.finalUrl,
-      html: result.html,
-      strategy: "headless",
-    };
+    return fetchHeadless(url, options);
   }
 
   return fetchWithAutoDetect(url, options);
 }
 
-function htmlToMarkdownPipeline(
-  html: string,
-  finalUrl: string,
-  options: FetchOptions,
-  preExtracted?: PreExtractedContent
-): { markdown: string; metadata: CacheMetadata } {
-  let workingHtml: string;
-  let metadata: CacheMetadata;
+async function htmlToMarkdownPipeline(
+  result: FetchModeResult,
+  options: FetchOptions
+): Promise<{ markdown: string; metadata: CacheMetadata }> {
+  const [{ convertHtmlToMarkdown }, { extractContent }] = await Promise.all([
+    import("./converter"),
+    import("./extractor"),
+  ]);
 
-  if (preExtracted && !options.excludeSelectors?.length) {
-    workingHtml = preExtracted.html;
-    metadata = {
-      author: preExtracted.metadata.author,
-      description: preExtracted.metadata.description,
-      title: preExtracted.metadata.title,
-    };
-  } else {
-    const extracted = extractContent(html, {
-      baseUrl: finalUrl,
+  const extracted =
+    result.extracted ??
+    extractContent(result.html, {
+      baseUrl: result.finalUrl,
       excludeSelectors: options.excludeSelectors,
       raw: options.raw,
     });
-    workingHtml = extracted.html;
-    metadata = {
-      author: extracted.metadata.author,
-      description: extracted.metadata.description,
-      title: extracted.metadata.title,
-    };
-  }
+  const { author, description, title } = extracted.metadata;
 
-  const markdown = convertHtmlToMarkdown(workingHtml, {
-    baseUrl: finalUrl,
+  const markdown = convertHtmlToMarkdown(extracted.content, {
+    baseUrl: result.finalUrl,
     stripLinks: options.stripLinks,
   });
 
-  return { markdown, metadata };
+  return { markdown, metadata: { author, description, title } };
 }
 
 async function orchestrateFetch(
@@ -574,12 +563,7 @@ async function orchestrateFetch(
     ({ markdown, markdownTokens } = result);
   } else {
     // Run extract→convert pipeline on HTML
-    const converted = await htmlToMarkdownPipeline(
-      result.html,
-      result.finalUrl,
-      options,
-      result.preExtracted
-    );
+    const converted = await htmlToMarkdownPipeline(result, options);
     ({ markdown, metadata } = converted);
   }
 

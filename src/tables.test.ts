@@ -9,7 +9,7 @@ function extractTableJson(html: string) {
   if (!match) {
     throw new Error("no table pre block found");
   }
-  // cheerio escapes quotes inside text; decode the entities we expect.
+  // Serialized text escapes HTML entities; decode the ones we expect.
   const decoded = (match[1] ?? "")
     .replaceAll("&quot;", '"')
     .replaceAll("&amp;", "&")
@@ -55,6 +55,33 @@ describe("convertTablesToJson", () => {
       expect(json.headers).toEqual(["H"]);
       expect(json.rows).toEqual([{ H: "d" }]);
     }
+  });
+
+  it("keeps footer rows when the table has no body rows", () => {
+    const html =
+      "<table><thead><tr><th>K</th></tr></thead>" +
+      "<tfoot><tr><td>total</td></tr></tfoot></table>";
+    const json = extractTableJson(convertTablesToJson(html));
+    expect(json.rows).toEqual([{ K: "total" }]);
+  });
+
+  it("leaves footer rows out when body rows exist", () => {
+    const html =
+      "<table><thead><tr><th>K</th></tr></thead><tbody><tr><td>v</td></tr>" +
+      "</tbody><tfoot><tr><td>total</td></tr></tfoot></table>";
+    const json = extractTableJson(convertTablesToJson(html));
+    expect(json.rows).toEqual([{ K: "v" }]);
+  });
+
+  it("ignores rows and cells of nested tables", () => {
+    const html =
+      "<table><tr><th>Outer</th></tr><tr><td>" +
+      "<table><tr><th>Inner</th></tr><tr><td>x</td><td>y</td></tr></table>" +
+      "</td></tr></table>";
+    const json = extractTableJson(convertTablesToJson(html));
+    expect(json.headers).toEqual(["Outer"]);
+    expect(json.rows).toHaveLength(1);
+    expect(Object.keys(json.rows[0])).toEqual(["Outer"]);
   });
 
   it("captures a caption when present", () => {

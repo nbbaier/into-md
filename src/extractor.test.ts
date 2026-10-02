@@ -39,31 +39,31 @@ describe("extractContent metadata", () => {
 });
 
 describe("extractContent raw mode", () => {
-  it("returns the full document html", () => {
-    const { html } = extractContent(article, { baseUrl, raw: true });
-    expect(html).toContain("<html");
-    expect(html).toContain("The Title");
+  it("returns the whole body without running Readability", () => {
+    const { content } = extractContent(article, { baseUrl, raw: true });
+    expect(content.nodeName).toBe("BODY");
+    expect(content.innerHTML).toContain("SHOULD NOT APPEAR");
+    expect(content.innerHTML).toContain("The Title");
   });
 
   it("removes nodes matched by excludeSelectors", () => {
-    const { html } = extractContent(article, {
+    const { content } = extractContent(article, {
       baseUrl,
       excludeSelectors: ["nav.site-nav"],
       raw: true,
     });
-    expect(html).not.toContain("SHOULD NOT APPEAR");
+    expect(content.innerHTML).not.toContain("SHOULD NOT APPEAR");
   });
 });
 
 describe("extractContent readability mode", () => {
   it("returns extracted article content for a normal page", () => {
-    const { html } = extractContent(article, { baseUrl });
-    expect(html.length).toBeGreaterThan(0);
-    expect(html).toContain("article body text");
+    const { content } = extractContent(article, { baseUrl });
+    expect(content.innerHTML).toContain("article body text");
   });
 
   it("drops chrome like the nav in extracted mode", () => {
-    const { html } = extractContent(article, { baseUrl });
-    expect(html).not.toContain("SHOULD NOT APPEAR");
+    const { content } = extractContent(article, { baseUrl });
+    expect(content.innerHTML).not.toContain("SHOULD NOT APPEAR");
   });
 });

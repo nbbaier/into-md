@@ -168,7 +168,7 @@ Cookie file format: Netscape/Mozilla cookie file format (compatible with browser
 
 - **Runtime**: Bun
 - **Language**: TypeScript
-- **HTML Parsing**: cheerio
+- **HTML Parsing**: linkedom
 - **Markdown Conversion**: turndown
 - **Content Extraction**: @mozilla/readability
 - **Headless Browser**: playwright (optional, for `--js` mode)

@@ -15,7 +15,7 @@ function runPipeline(
     baseUrl: BASE_URL,
     raw: options.raw,
   });
-  const withTables = convertTablesToJson(extracted.html);
+  const withTables = convertTablesToJson(extracted.content.innerHTML);
   const withImages = annotateImages(withTables, BASE_URL);
   return convertHtmlToMarkdown(withImages, {
     baseUrl: BASE_URL,

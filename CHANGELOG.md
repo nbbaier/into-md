@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Replaced JSDOM and cheerio with linkedom, and parse each page once: auto
+  detection, metadata, `--exclude`, Readability and conversion now share one
+  document. Static conversions are roughly 3.5–4× faster end to end and use
+  about half the memory.
+- Load the HTML pipeline lazily, so `--version`, `--help` and cache hits no
+  longer import it (~550 ms → ~50 ms).
+- Headless mode launches Chromium once instead of launching it a first time
+  just to check that it is installed.
+
+### Fixed
+
+- Accepting the Chromium install prompt now works under Node: it runs
+  Playwright's CLI with the current runtime instead of importing `bun`.
+- Table-to-JSON conversion no longer mixes rows and cells of nested tables
+  into the outer table (visible mostly with `--raw` on layout-table pages).
+
 ## [1.0.1] - 2026-06-18
 
 ### Fixed

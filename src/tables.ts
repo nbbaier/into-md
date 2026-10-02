@@ -1,7 +1,4 @@
-import { type Cheerio, type CheerioAPI, load } from "cheerio";
-import type { AnyNode } from "domhandler";
-
-import { getBodyHtml } from "./utils";
+import { parseFragment } from "./utils";
 
 interface TableJson {
   caption?: string;
@@ -9,67 +6,84 @@ interface TableJson {
   rows: Record<string, string>[];
 }
 
-function extractHeaders($table: Cheerio<AnyNode>, $: CheerioAPI): string[] {
-  const explicitHeaders = $table.find("thead th");
+const cellText = (cell: Element): string => cell.textContent?.trim() ?? "";
+
+/**
+ * Rows that belong to this table rather than to a nested one. Rows may sit in
+ * a thead/tbody/tfoot or, since linkedom adds no implicit tbody, directly in
+ * the table.
+ */
+const ownRows = (table: Element): Element[] =>
+  Array.from(table.querySelectorAll("tr")).filter(
+    (row) => row.closest("table") === table
+  );
+
+const ownCells = (row: Element): Element[] =>
+  Array.from(row.children).filter(
+    (cell) => cell.nodeName === "TD" || cell.nodeName === "TH"
+  );
+
+const rowSection = (row: Element): string => row.parentElement?.nodeName ?? "";
+
+function extractHeaders(rows: Element[]): string[] {
+  const explicitHeaders = rows
+    .filter((row) => rowSection(row) === "THEAD")
+    .flatMap(ownCells)
+    .filter((cell) => cell.nodeName === "TH");
   if (explicitHeaders.length) {
-    return explicitHeaders
-      .toArray()
-      .map((th) => $(th).text().trim())
-      .filter(Boolean);
+    return explicitHeaders.map(cellText).filter(Boolean);
   }
 
-  const firstRowHeaders = $table.find("tr").first().find("th, td");
-  if (firstRowHeaders.length) {
-    return firstRowHeaders
-      .toArray()
-      .map((cell, index) => $(cell).text().trim() || `Column ${index + 1}`);
-  }
-
-  return [];
+  const firstRowHeaders = rows[0] ? ownCells(rows[0]) : [];
+  return firstRowHeaders.map(
+    (cell, index) => cellText(cell) || `Column ${index + 1}`
+  );
 }
 
 function extractRows(
-  $table: Cheerio<AnyNode>,
-  headers: string[],
-  $: CheerioAPI
+  rows: Element[],
+  headers: string[]
 ): Record<string, string>[] {
-  const rows: Record<string, string>[] = [];
-  const hasThead = $table.find("thead th").length > 0;
-  const bodyRows = $table.find("tbody tr");
-  // Candidate data rows: prefer an explicit tbody, otherwise every row that
-  // isn't inside a thead.
-  let dataRows = bodyRows.length
-    ? bodyRows
-    : $table.find("tr").filter((_, el) => $(el).closest("thead").length === 0);
+  const records: Record<string, string>[] = [];
+  const hasThead = rows.some(
+    (row) =>
+      rowSection(row) === "THEAD" &&
+      ownCells(row).some((cell) => cell.nodeName === "TH")
+  );
+  const nonHeadRows = rows.filter((row) => rowSection(row) !== "THEAD");
+  // Prefer body rows; footer rows count as data only when there are none.
+  const bodyRows = nonHeadRows.filter((row) => rowSection(row) !== "TFOOT");
+  let dataRows = bodyRows.length ? bodyRows : nonHeadRows;
   // Without an explicit thead the first row supplied the headers, so it must
-  // not be repeated as data (the HTML parser wraps loose rows in an implicit
-  // tbody, which would otherwise sweep the header row back in).
+  // not be repeated as data.
   if (!hasThead) {
     dataRows = dataRows.slice(1);
   }
 
-  for (const row of dataRows.toArray()) {
-    const cells = $(row).find("td, th");
+  for (const row of dataRows) {
+    const cells = ownCells(row);
     if (!cells.length) {
       continue;
     }
     const record: Record<string, string> = {};
-    for (const [cellIndex, cell] of cells.toArray().entries()) {
+    for (const [cellIndex, cell] of cells.entries()) {
       const key = headers[cellIndex] ?? `Column ${cellIndex + 1}`;
-      record[key] = $(cell).text().trim();
+      record[key] = cellText(cell);
     }
-    rows.push(record);
+    records.push(record);
   }
 
-  return rows;
+  return records;
 }
 
-export function convertTablesToJsonDom($: CheerioAPI): void {
-  for (const table of $("table").toArray()) {
-    const $table = $(table);
-    const caption = $table.find("caption").first().text().trim() || undefined;
-    const headers = extractHeaders($table, $);
-    const rows = extractRows($table, headers, $);
+/** Replaces every table under `root` with a `<pre>` holding its JSON form. */
+export function convertTablesToJsonDom(root: ParentNode): void {
+  for (const table of Array.from(root.querySelectorAll("table"))) {
+    const captionEl = table.querySelector(":scope > caption");
+    const caption = (captionEl && cellText(captionEl)) || undefined;
+    const tableRows = ownRows(table);
+    const headers = extractHeaders(tableRows);
+    const rows = extractRows(tableRows, headers);
 
     const json: TableJson = {
       caption,
@@ -77,15 +91,15 @@ export function convertTablesToJsonDom($: CheerioAPI): void {
       rows,
     };
 
-    const pre = $("<pre>")
-      .attr("data-into-md-table", "true")
-      .text(JSON.stringify(json, null, 2));
-    $table.replaceWith(pre);
+    const pre = table.ownerDocument.createElement("pre");
+    pre.setAttribute("data-into-md-table", "true");
+    pre.textContent = JSON.stringify(json, null, 2);
+    table.replaceWith(pre);
   }
 }
 
 export function convertTablesToJson(html: string): string {
-  const $ = load(html);
-  convertTablesToJsonDom($);
-  return getBodyHtml($);
+  const root = parseFragment(html);
+  convertTablesToJsonDom(root);
+  return root.innerHTML;
 }
