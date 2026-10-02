@@ -1,4 +1,4 @@
-import { JSDOM } from "jsdom";
+import { parseDocument, parseFragment } from "./utils";
 
 const STAGE_1_BODY_TEXT_MIN = 100;
 const STAGE_2_CONTENT_MIN = 200;
@@ -131,14 +131,14 @@ function hasNoscriptAndEmptyBody(document: Document): boolean {
   return bodyTextCount < STAGE_1_BODY_TEXT_MIN;
 }
 
-function isContentTooSparse(document: Document): boolean {
-  const textContent = document.body?.textContent?.trim() ?? "";
+function isContentTooSparse(content: HTMLElement): boolean {
+  const textContent = content.textContent?.trim() ?? "";
   if (textContent.length >= STAGE_2_CONTENT_MIN) {
     return false;
   }
 
   const hasStructuralTags = STAGE_2_STRUCTURAL_TAGS.some((tag) =>
-    document.querySelector(tag)
+    content.querySelector(tag)
   );
 
   return !hasStructuralTags;
@@ -151,16 +151,20 @@ interface DetectionResult {
 
 type DetectionStage = "stage1" | "stage2" | "both";
 
+/**
+ * Decides whether a page needs a headless browser. Stage 1 inspects the raw
+ * page; stage 2 inspects the extracted content. Both accept HTML strings or
+ * already-parsed nodes so callers can reuse a single parse.
+ */
 export function detectNeedForBrowser(
-  rawHtml: string,
-  extractedHtml?: string | null,
+  raw: string | Document,
+  extracted?: string | HTMLElement | null,
   options: { verbose?: boolean; raw?: boolean; stage?: DetectionStage } = {}
 ): DetectionResult {
   const stage = options.stage ?? "both";
 
   if (stage !== "stage2") {
-    const dom = new JSDOM(rawHtml);
-    const { document } = dom.window;
+    const document = typeof raw === "string" ? parseDocument(raw) : raw;
 
     if (isEmptyRootDiv(document)) {
       return { reason: "Empty SPA root div detected", shouldFallback: true };
@@ -174,17 +178,19 @@ export function detectNeedForBrowser(
     }
   }
 
-  if (stage !== "stage1" && !options.raw) {
-    const hasExtracted = extractedHtml !== undefined && extractedHtml !== null;
-    if (hasExtracted) {
-      const dom = new JSDOM(extractedHtml);
-      const { document } = dom.window;
-      if (isContentTooSparse(document)) {
-        return {
-          reason: "Extracted content is too sparse",
-          shouldFallback: true,
-        };
-      }
+  if (
+    stage !== "stage1" &&
+    !options.raw &&
+    extracted !== undefined &&
+    extracted !== null
+  ) {
+    const content =
+      typeof extracted === "string" ? parseFragment(extracted) : extracted;
+    if (isContentTooSparse(content)) {
+      return {
+        reason: "Extracted content is too sparse",
+        shouldFallback: true,
+      };
     }
   }
 

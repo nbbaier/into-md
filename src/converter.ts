@@ -1,9 +1,8 @@
-import { load } from "cheerio";
 import TurndownService from "turndown";
 
 import { annotateImagesDom } from "./images";
 import { convertTablesToJsonDom } from "./tables";
-import { getBodyHtml, toAbsoluteUrl } from "./utils";
+import { parseFragment, toAbsoluteUrl } from "./utils";
 
 interface ConvertOptions {
   baseUrl: string;
@@ -86,31 +85,36 @@ function getTurndownService(stripLinks?: boolean): TurndownService {
   return turndownWithLinks;
 }
 
+/**
+ * Converts HTML to markdown. Accepts either an HTML string or an already
+ * parsed element; an element's children are converted and the element is
+ * mutated in place.
+ */
 export function convertHtmlToMarkdown(
-  html: string,
+  input: string | HTMLElement,
   options: ConvertOptions
 ): string {
-  const $ = load(html);
+  const root = typeof input === "string" ? parseFragment(input) : input;
 
   // 1. Convert tables to JSON pre blocks
-  convertTablesToJsonDom($);
+  convertTablesToJsonDom(root);
 
   // 2. Annotate images with captions and absolute URLs
-  annotateImagesDom($, options.baseUrl);
+  annotateImagesDom(root, options.baseUrl);
 
   // 3. Absolutify link hrefs
-  for (const el of $("a[href]").toArray()) {
-    const $el = $(el);
-    const absolute = toAbsoluteUrl($el.attr("href"), options.baseUrl);
+  for (const el of Array.from(root.querySelectorAll("a[href]"))) {
+    const absolute = toAbsoluteUrl(el.getAttribute("href"), options.baseUrl);
     if (absolute) {
-      $el.attr("href", absolute);
+      el.setAttribute("href", absolute);
     }
   }
 
   // 4. Remove script and style elements
-  $("script, style").remove();
+  for (const el of Array.from(root.querySelectorAll("script, style"))) {
+    el.remove();
+  }
 
-  const prepared = getBodyHtml($);
   const turndown = getTurndownService(options.stripLinks);
-  return turndown.turndown(prepared);
+  return turndown.turndown(root);
 }

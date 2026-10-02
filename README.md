@@ -156,8 +156,7 @@ bun run typecheck        # Type check
 
 - **Runtime**: Bun
 - **Language**: TypeScript
-- **HTML Parsing**: cheerio
-- **DOM**: jsdom (auto-detect heuristics)
+- **HTML Parsing / DOM**: linkedom (parse5 fallback for documents without `<html>`/`<body>` tags)
 - **Markdown Conversion**: turndown
 - **Content Extraction**: @mozilla/readability
 - **Headless Browser**: playwright

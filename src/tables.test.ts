@@ -1,15 +1,14 @@
 import { describe, expect, it } from "bun:test";
-import { load } from "cheerio";
 import { convertHtmlToMarkdown } from "./converter";
 import { convertTablesToJsonDom } from "./tables";
-import { getBodyHtml } from "./utils";
+import { parseFragment } from "./utils";
 
 const TABLE_PRE = /<pre data-into-md-table="true">([\s\S]*?)<\/pre>/;
 
 function convertTables(html: string) {
-  const $ = load(html);
-  convertTablesToJsonDom($);
-  return getBodyHtml($);
+  const root = parseFragment(html);
+  convertTablesToJsonDom(root);
+  return root.innerHTML;
 }
 
 function extractTableJson(html: string) {
@@ -17,7 +16,7 @@ function extractTableJson(html: string) {
   if (!match) {
     throw new Error("no table pre block found");
   }
-  // cheerio escapes quotes inside text; decode the entities we expect.
+  // Serialized text escapes HTML entities; decode the ones we expect.
   const decoded = (match[1] ?? "")
     .replaceAll("&quot;", '"')
     .replaceAll("&amp;", "&")
@@ -63,6 +62,17 @@ describe("convertTablesToJson", () => {
       expect(json.headers).toEqual(["H"]);
       expect(json.rows).toEqual([{ H: "d" }]);
     }
+  });
+
+  it("ignores rows and cells of nested tables", () => {
+    const html =
+      "<table><tr><th>Outer</th></tr><tr><td>" +
+      "<table><tr><th>Inner</th></tr><tr><td>x</td><td>y</td></tr></table>" +
+      "</td></tr></table>";
+    const json = extractTableJson(convertTables(html));
+    expect(json.headers).toEqual(["Outer"]);
+    expect(json.rows).toHaveLength(1);
+    expect(Object.keys(json.rows[0])).toEqual(["Outer"]);
   });
 
   it("captures a caption when present", () => {
