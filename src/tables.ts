@@ -1,7 +1,5 @@
-import { type Cheerio, type CheerioAPI, load } from "cheerio";
+import type { Cheerio, CheerioAPI } from "cheerio";
 import type { AnyNode } from "domhandler";
-
-import { getBodyHtml } from "./utils";
 
 interface TableJson {
   caption?: string;
@@ -82,10 +80,4 @@ export function convertTablesToJsonDom($: CheerioAPI): void {
       .text(JSON.stringify(json, null, 2));
     $table.replaceWith(pre);
   }
-}
-
-export function convertTablesToJson(html: string): string {
-  const $ = load(html);
-  convertTablesToJsonDom($);
-  return getBodyHtml($);
 }
