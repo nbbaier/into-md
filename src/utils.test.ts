@@ -61,6 +61,17 @@ describe("parseDocument", () => {
     expect(document.body.textContent).toBe("no body tag");
   });
 
+  it("moves content misplaced inside a table out of it, like a browser", () => {
+    const document = parseDocument(
+      "<html><body><table><tr><td>cell</td></tr>stray<div>moved</div>" +
+        "</table></body></html>"
+    );
+    const table = document.querySelector("table");
+    expect(table?.textContent).toBe("cell");
+    expect(document.body.textContent).toContain("stray");
+    expect(document.body.textContent).toContain("moved");
+  });
+
   it("wraps a bare fragment in a document", () => {
     const document = parseDocument("<p>a</p><p>b</p>");
     expect(document.documentElement.nodeName).toBe("HTML");
@@ -72,5 +83,13 @@ describe("parseFragment", () => {
   it("returns a container whose children are the fragment", () => {
     const root = parseFragment("<h1>T</h1><p>x</p>");
     expect(root.innerHTML).toBe("<h1>T</h1><p>x</p>");
+  });
+
+  it("moves content misplaced inside a table out of it", () => {
+    const root = parseFragment(
+      "<table><tr><td>cell</td></tr><p>moved</p></table>"
+    );
+    expect(root.querySelector("table")?.textContent).toBe("cell");
+    expect(root.querySelector("p")?.parentElement).toBe(root);
   });
 });
