@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Orb setup for into-md: Bun toolchain, locked dependencies, and the
+# Playwright Chromium build used by the fetcher's JS mode.
+# Idempotent; a warm run finishes in seconds.
+set -euo pipefail
+
+setup_start=$(date +%s)
+log() { printf '[setup] %s\n' "$*"; }
+
+# Bun ships in Amp's base image; install it only when missing.
+if ! command -v bun >/dev/null 2>&1; then
+  log "Bun not found; installing..."
+  curl -fsSL https://bun.sh/install | bash
+  export PATH="$HOME/.bun/bin:$PATH"
+fi
+log "bun $(bun --version)"
+
+log "Installing dependencies from bun.lock..."
+bun install --frozen-lockfile
+
+log "Ensuring Playwright Chromium..."
+bunx playwright install chromium
+
+log "Setup completed in $(( $(date +%s) - setup_start ))s"

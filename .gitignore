@@ -20,3 +20,4 @@ node_modules
 out
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cursor/hooks/state/continual-learning*
+.amp/portals/

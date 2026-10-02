@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Runs on every orb wake. This repo has no backing services, tunnels, or
+# per-session auth, so there is nothing to restore. Keep this fast (<10s).
+set -euo pipefail
+exit 0
