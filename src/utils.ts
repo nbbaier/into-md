@@ -1,5 +1,5 @@
 import { parseHTML } from "linkedom";
-import { parse, serialize } from "parse5";
+import { parse, parseFragment as parse5Fragment, serialize } from "parse5";
 
 /**
  * Converts a relative URL to an absolute URL using the provided base URL.
@@ -64,6 +64,51 @@ const hasStandardStructure = (document: Document): boolean => {
   return hasBody;
 };
 
+/** Children the HTML parser allows inside table structure; anything else is foster-parented. */
+const TABLE_SCRIPTING_TAGS = ["SCRIPT", "STYLE", "TEMPLATE"];
+const SECTION_CHILDREN = new Set(["TR", ...TABLE_SCRIPTING_TAGS]);
+const ALLOWED_TABLE_CHILDREN: Record<string, Set<string>> = {
+  TABLE: new Set([
+    "CAPTION",
+    "COLGROUP",
+    "TBODY",
+    "TFOOT",
+    "THEAD",
+    "TR",
+    ...TABLE_SCRIPTING_TAGS,
+  ]),
+  TBODY: SECTION_CHILDREN,
+  TFOOT: SECTION_CHILDREN,
+  THEAD: SECTION_CHILDREN,
+  TR: new Set(["TD", "TH", ...TABLE_SCRIPTING_TAGS]),
+};
+
+/**
+ * Browsers move text and elements that are misplaced inside table structure
+ * to just before the table; linkedom leaves them in place, where the table
+ * converter (which only reads cells) would drop them.
+ */
+const hasMisplacedTableContent = (root: ParentNode): boolean => {
+  for (const container of Array.from(
+    root.querySelectorAll("table, thead, tbody, tfoot, tr")
+  )) {
+    const allowed = ALLOWED_TABLE_CHILDREN[container.nodeName];
+    for (const child of Array.from(container.childNodes)) {
+      if (child.nodeType === TEXT_NODE) {
+        if (child.textContent?.trim()) {
+          return true;
+        }
+      } else if (
+        child.nodeType === ELEMENT_NODE &&
+        !allowed?.has(child.nodeName)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 /**
  * Brings a linkedom tree closer to what a browser (and JSDOM) builds, which
  * Readability's scoring and Turndown's escaping depend on:
@@ -97,13 +142,14 @@ const matchBrowserTree = (root: ParentNode & Node): void => {
 };
 
 /**
- * Parses a full HTML document with linkedom. Documents linkedom cannot place
- * into `<html><head><body>` are first normalized through parse5, a spec-compliant
- * parser, so no content is lost.
+ * Parses a full HTML document with linkedom. Documents linkedom would build
+ * differently from a browser in ways that lose content (missing
+ * `<html>`/`<body>`, misplaced table content) are first normalized through
+ * parse5, a spec-compliant parser.
  */
 export const parseDocument = (html: string): Document => {
   let document = parseHTML(html).document as unknown as Document;
-  if (!hasStandardStructure(document)) {
+  if (!hasStandardStructure(document) || hasMisplacedTableContent(document)) {
     document = parseHTML(serialize(parse(html)))
       .document as unknown as Document;
   }
@@ -119,6 +165,9 @@ export const parseDocument = (html: string): Document => {
 export const parseFragment = (html: string): HTMLElement => {
   const { body } = parseDocument("<!doctype html><html><body></body></html>");
   body.innerHTML = html;
+  if (hasMisplacedTableContent(body)) {
+    body.innerHTML = serialize(parse5Fragment(html));
+  }
   matchBrowserTree(body);
   return body;
 };

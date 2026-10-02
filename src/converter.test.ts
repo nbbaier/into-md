@@ -64,6 +64,15 @@ describe("convertHtmlToMarkdown", () => {
     expect(md.trim()).toBe("text");
   });
 
+  it("keeps text misplaced inside a table when converting it to JSON", () => {
+    const md = convertHtmlToMarkdown(
+      "<table><tr><th>K</th></tr><tr><td>v</td></tr><p>Footnote</p></table>",
+      { baseUrl }
+    );
+    expect(md).toContain("Footnote");
+    expect(md).toContain("```json");
+  });
+
   it("removes script and style elements", () => {
     const md = convertHtmlToMarkdown(
       "<script>danger()</script><style>p{}</style><p>Hello</p>",

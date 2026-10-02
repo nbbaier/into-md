@@ -48,10 +48,10 @@ function extractRows(
       rowSection(row) === "THEAD" &&
       ownCells(row).some((cell) => cell.nodeName === "TH")
   );
-  let dataRows = rows.filter((row) => {
-    const section = rowSection(row);
-    return section !== "THEAD" && section !== "TFOOT";
-  });
+  const nonHeadRows = rows.filter((row) => rowSection(row) !== "THEAD");
+  // Prefer body rows; footer rows count as data only when there are none.
+  const bodyRows = nonHeadRows.filter((row) => rowSection(row) !== "TFOOT");
+  let dataRows = bodyRows.length ? bodyRows : nonHeadRows;
   // Without an explicit thead the first row supplied the headers, so it must
   // not be repeated as data.
   if (!hasThead) {

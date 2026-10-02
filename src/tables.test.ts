@@ -64,6 +64,22 @@ describe("convertTablesToJson", () => {
     }
   });
 
+  it("keeps footer rows when the table has no body rows", () => {
+    const html =
+      "<table><thead><tr><th>K</th></tr></thead>" +
+      "<tfoot><tr><td>total</td></tr></tfoot></table>";
+    const json = extractTableJson(convertTables(html));
+    expect(json.rows).toEqual([{ K: "total" }]);
+  });
+
+  it("leaves footer rows out when body rows exist", () => {
+    const html =
+      "<table><thead><tr><th>K</th></tr></thead><tbody><tr><td>v</td></tr>" +
+      "</tbody><tfoot><tr><td>total</td></tr></tfoot></table>";
+    const json = extractTableJson(convertTables(html));
+    expect(json.rows).toEqual([{ K: "v" }]);
+  });
+
   it("ignores rows and cells of nested tables", () => {
     const html =
       "<table><tr><th>Outer</th></tr><tr><td>" +
