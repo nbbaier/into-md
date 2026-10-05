@@ -1,11 +1,12 @@
-import type { CheerioAPI } from "cheerio";
+import { parseHTML } from "linkedom";
+import { parse, parseFragment as parse5Fragment, serialize } from "parse5";
 
 /**
  * Converts a relative URL to an absolute URL using the provided base URL.
  * Returns the original URL if it cannot be parsed.
  */
 export const toAbsoluteUrl = (
-  url: string | undefined,
+  url: string | null | undefined,
   baseUrl: string
 ): string | undefined => {
   if (!url) {
@@ -18,11 +19,155 @@ export const toAbsoluteUrl = (
   }
 };
 
+const ELEMENT_NODE = 1;
+const TEXT_NODE = 3;
+/** Elements that may harmlessly sit outside <body> (e.g. scripts after </body>). */
+const NON_CONTENT_TAGS = new Set([
+  "LINK",
+  "META",
+  "NOSCRIPT",
+  "SCRIPT",
+  "STYLE",
+  "TEMPLATE",
+]);
+
+const isStrayContent = (node: Node): boolean => {
+  if (node.nodeType === TEXT_NODE) {
+    return Boolean(node.textContent?.trim());
+  }
+  return node.nodeType === ELEMENT_NODE && !NON_CONTENT_TAGS.has(node.nodeName);
+};
+
 /**
- * Extracts the inner HTML from the body element, or falls back to root HTML.
- * Common pattern used across multiple cheerio-based transformations.
+ * linkedom does not run the HTML5 tree-construction algorithm, so documents
+ * that omit optional `<html>`/`<body>` tags (or bare fragments) come out with
+ * content outside `<body>` or a non-`<html>` root.
  */
-export const getBodyHtml = ($: CheerioAPI): string => {
-  const body = $("body");
-  return body.length ? (body.html() ?? "") : ($.root().html() ?? "");
+const hasStandardStructure = (document: Document): boolean => {
+  const root = document.documentElement;
+  if (root?.nodeName !== "HTML") {
+    return false;
+  }
+  for (const node of Array.from(document.childNodes)) {
+    if (node !== root && isStrayContent(node)) {
+      return false;
+    }
+  }
+  let hasBody = false;
+  for (const node of Array.from(root.childNodes)) {
+    if (node.nodeName === "BODY") {
+      hasBody = true;
+    } else if (node.nodeName !== "HEAD" && isStrayContent(node)) {
+      return false;
+    }
+  }
+  return hasBody;
+};
+
+/** Children the HTML parser allows inside table structure; anything else is foster-parented. */
+const TABLE_SCRIPTING_TAGS = ["SCRIPT", "STYLE", "TEMPLATE"];
+const SECTION_CHILDREN = new Set(["TR", ...TABLE_SCRIPTING_TAGS]);
+const ALLOWED_TABLE_CHILDREN: Record<string, Set<string>> = {
+  TABLE: new Set([
+    "CAPTION",
+    "COLGROUP",
+    "TBODY",
+    "TFOOT",
+    "THEAD",
+    "TR",
+    ...TABLE_SCRIPTING_TAGS,
+  ]),
+  TBODY: SECTION_CHILDREN,
+  TFOOT: SECTION_CHILDREN,
+  THEAD: SECTION_CHILDREN,
+  TR: new Set(["TD", "TH", ...TABLE_SCRIPTING_TAGS]),
+};
+
+/**
+ * Browsers move text and elements that are misplaced inside table structure
+ * to just before the table; linkedom leaves them in place, where the table
+ * converter (which only reads cells) would drop them.
+ */
+const hasMisplacedTableContent = (root: ParentNode): boolean => {
+  for (const container of Array.from(
+    root.querySelectorAll("table, thead, tbody, tfoot, tr")
+  )) {
+    const allowed = ALLOWED_TABLE_CHILDREN[container.nodeName];
+    for (const child of Array.from(container.childNodes)) {
+      if (child.nodeType === TEXT_NODE) {
+        if (child.textContent?.trim()) {
+          return true;
+        }
+      } else if (
+        child.nodeType === ELEMENT_NODE &&
+        !allowed?.has(child.nodeName)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+/**
+ * Brings a linkedom tree closer to what a browser (and JSDOM) builds, which
+ * Readability's scoring and Turndown's escaping depend on:
+ * - `<template>` contents are inert, but linkedom exposes them as children;
+ * - rows placed directly in a `<table>` get an implicit `<tbody>`;
+ * - text split at entities (`a &gt; b`) is merged into single text nodes.
+ */
+const matchBrowserTree = (root: ParentNode & Node): void => {
+  for (const template of Array.from(root.querySelectorAll("template"))) {
+    template.remove();
+  }
+
+  for (const table of Array.from(root.querySelectorAll("table"))) {
+    let tbody: HTMLElement | null = null;
+    for (const child of Array.from(table.childNodes)) {
+      if (child.nodeName === "TR") {
+        if (!tbody) {
+          tbody = table.ownerDocument.createElement("tbody");
+          table.insertBefore(tbody, child);
+        }
+        tbody.appendChild(child);
+      } else if (child.nodeType === ELEMENT_NODE) {
+        tbody = null;
+      } else if (tbody) {
+        tbody.appendChild(child);
+      }
+    }
+  }
+
+  root.normalize();
+};
+
+/**
+ * Parses a full HTML document with linkedom. Documents linkedom would build
+ * differently from a browser in ways that lose content (missing
+ * `<html>`/`<body>`, misplaced table content) are first normalized through
+ * parse5, a spec-compliant parser.
+ */
+export const parseDocument = (html: string): Document => {
+  let document = parseHTML(html).document as unknown as Document;
+  if (!hasStandardStructure(document) || hasMisplacedTableContent(document)) {
+    document = parseHTML(serialize(parse(html)))
+      .document as unknown as Document;
+  }
+  matchBrowserTree(document);
+  return document;
+};
+
+/**
+ * Parses an HTML fragment and returns the element that contains it.
+ * linkedom treats the first element of a bare fragment as the document root,
+ * so the fragment is placed inside an empty document's body instead.
+ */
+export const parseFragment = (html: string): HTMLElement => {
+  const { body } = parseDocument("<!doctype html><html><body></body></html>");
+  body.innerHTML = html;
+  if (hasMisplacedTableContent(body)) {
+    body.innerHTML = serialize(parse5Fragment(html));
+  }
+  matchBrowserTree(body);
+  return body;
 };

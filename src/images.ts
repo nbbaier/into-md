@@ -1,23 +1,26 @@
-import type { CheerioAPI } from "cheerio";
-
 import { toAbsoluteUrl } from "./utils";
 
-export function annotateImagesDom($: CheerioAPI, baseUrl: string): void {
-  for (const img of $("img").toArray()) {
-    const $img = $(img);
-    const src = $img.attr("src");
-    const absoluteSrc = toAbsoluteUrl(src, baseUrl);
+/** Makes image URLs absolute and records figure captions for the converter. */
+export function annotateImagesDom(root: ParentNode, baseUrl: string): void {
+  for (const img of Array.from(root.querySelectorAll("img"))) {
+    const absoluteSrc = toAbsoluteUrl(img.getAttribute("src"), baseUrl);
     if (absoluteSrc) {
-      $img.attr("src", absoluteSrc);
+      img.setAttribute("src", absoluteSrc);
     }
 
-    const figure = $img.closest("figure");
+    const figure = img.closest("figure");
+    const figcaption = figure
+      ? Array.from(
+          figure.querySelectorAll("figcaption"),
+          (el) => el.textContent
+        )
+          .join("")
+          .trim()
+      : "";
     const caption =
-      figure.find("figcaption").text().trim() ||
-      $img.attr("title")?.trim() ||
-      undefined;
+      figcaption || img.getAttribute("title")?.trim() || undefined;
     if (caption) {
-      $img.attr("data-into-md-caption", caption);
+      img.setAttribute("data-into-md-caption", caption);
     }
   }
 }

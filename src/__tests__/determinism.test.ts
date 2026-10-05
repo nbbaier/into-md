@@ -13,7 +13,7 @@ function runPipeline(
     baseUrl: BASE_URL,
     raw: options.raw,
   });
-  return convertHtmlToMarkdown(extracted.html, {
+  return convertHtmlToMarkdown(extracted.content, {
     baseUrl: BASE_URL,
     stripLinks: options.stripLinks,
   });
