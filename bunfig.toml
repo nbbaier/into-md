@@ -1,0 +1,3 @@
+[test]
+# Local handoff snapshots contain copies of test files with broken imports.
+pathIgnorePatterns = ["docs/handoffs/**"]
