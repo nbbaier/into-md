@@ -16,6 +16,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   longer import it (~550 ms → ~50 ms).
 - Headless mode launches Chromium once instead of launching it a first time
   just to check that it is installed.
+- Bumped the cache format to store the strategy and server token count.
+  Existing cache entries are ignored and re-fetched once after upgrading.
 
 ### Fixed
 
@@ -23,6 +25,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Playwright's CLI with the current runtime instead of importing `bun`.
 - Table-to-JSON conversion no longer mixes rows and cells of nested tables
   into the outer table (visible mostly with `--raw` on layout-table pages).
+- Cache hits now report the strategy that produced the page in the
+  `Strategy:` line and frontmatter, instead of always `static`.
+- `--js` and `--no-js` now re-fetch when the cached entry came from a
+  strategy they would not use (for example, `--no-js` with a cached headless
+  render), as the README always described.
+- Cache hits keep the server's `x-markdown-tokens` count, so `--verbose`
+  still prints it.
 
 ## [1.0.1] - 2026-06-18
 

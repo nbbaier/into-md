@@ -26,6 +26,8 @@ export interface CacheMetadata {
 export interface CacheEntry {
   finalUrl: string;
   markdown: string;
+  /** Token count from the server's x-markdown-tokens header, if it sent one */
+  markdownTokens?: number;
   metadata: CacheMetadata;
   strategy: "static" | "headless" | "markdown";
 }

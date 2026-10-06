@@ -396,6 +396,7 @@ async function tryGetFromCache(
     finalUrl: cached.finalUrl,
     fromCache: true,
     markdown: cached.markdown,
+    markdownTokens: cached.markdownTokens,
     metadata: cached.metadata,
     strategyUsed: cached.strategy,
   };
@@ -591,6 +592,7 @@ async function orchestrateFetch(
       {
         finalUrl: result.finalUrl,
         markdown,
+        markdownTokens,
         metadata,
         strategy: result.strategy,
       },

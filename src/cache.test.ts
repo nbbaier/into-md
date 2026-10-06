@@ -221,4 +221,22 @@ describe("cache backward compatibility", () => {
     const cached = await readFromCache(url, { cacheDir: testCacheDir });
     expect(cached?.strategy).toBe("headless");
   });
+
+  it("stores the server's markdown token count", async () => {
+    const url = "https://example.com/negotiated";
+    await writeToCache(
+      url,
+      {
+        finalUrl: url,
+        markdown: "# Served as markdown",
+        markdownTokens: 1234,
+        metadata: {},
+        strategy: "markdown",
+      },
+      { cacheDir: testCacheDir }
+    );
+
+    const cached = await readFromCache(url, { cacheDir: testCacheDir });
+    expect(cached?.markdownTokens).toBe(1234);
+  });
 });
