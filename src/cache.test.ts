@@ -64,9 +64,12 @@ describe("cache key with extraction options", () => {
 
       await writeToCache(
         url,
-        "# Raw stripped",
-        url,
-        { title: "Test" },
+        {
+          finalUrl: url,
+          markdown: "# Raw stripped",
+          metadata: { title: "Test" },
+          strategy: "static",
+        },
         { cacheDir: testCacheDir },
         extraction
       );
@@ -118,13 +121,36 @@ describe("cache backward compatibility", () => {
     expect(cached).toBeNull();
   });
 
-  it("reads new v2 format cache entries", async () => {
+  it("rejects v2 cache entries that lack a strategy", async () => {
+    const url = "https://example.com/v2-entry";
+    const v2Entry = {
+      cacheVersion: 2,
+      fetchedAt: Date.now(),
+      finalUrl: url,
+      markdown: "# Cached",
+      metadata: {},
+      url,
+    };
+    await writeFile(
+      buildCachePath(url, testCacheDir),
+      JSON.stringify(v2Entry, null, 2),
+      "utf8"
+    );
+
+    const cached = await readFromCache(url, { cacheDir: testCacheDir });
+    expect(cached).toBeNull();
+  });
+
+  it("reads current format cache entries", async () => {
     const url = "https://example.com/new-entry";
     await writeToCache(
       url,
-      "# Hello World\n\nSome markdown content",
-      "https://example.com/new-entry",
-      { title: "Hello World" },
+      {
+        finalUrl: "https://example.com/new-entry",
+        markdown: "# Hello World\n\nSome markdown content",
+        metadata: { title: "Hello World" },
+        strategy: "static",
+      },
       { cacheDir: testCacheDir }
     );
 
@@ -140,9 +166,16 @@ describe("cache backward compatibility", () => {
     const finalUrl = "https://example.com/with-meta";
     await writeToCache(
       url,
-      "# Test",
-      finalUrl,
-      { author: "Author", description: "A description", title: "Test Title" },
+      {
+        finalUrl,
+        markdown: "# Test",
+        metadata: {
+          author: "Author",
+          description: "A description",
+          title: "Test Title",
+        },
+        strategy: "static",
+      },
       { cacheDir: testCacheDir }
     );
 
@@ -158,14 +191,34 @@ describe("cache backward compatibility", () => {
     const finalUrl = "https://example.com/target";
     await writeToCache(
       url,
-      "# Redirected content",
-      finalUrl,
-      {},
+      {
+        finalUrl,
+        markdown: "# Redirected content",
+        metadata: {},
+        strategy: "static",
+      },
       { cacheDir: testCacheDir }
     );
 
     const cached = await readFromCache(url, { cacheDir: testCacheDir });
     expect(cached).not.toBeNull();
     expect(cached?.finalUrl).toBe(finalUrl);
+  });
+
+  it("stores the strategy that produced the markdown", async () => {
+    const url = "https://example.com/spa";
+    await writeToCache(
+      url,
+      {
+        finalUrl: url,
+        markdown: "# Rendered",
+        metadata: {},
+        strategy: "headless",
+      },
+      { cacheDir: testCacheDir }
+    );
+
+    const cached = await readFromCache(url, { cacheDir: testCacheDir });
+    expect(cached?.strategy).toBe("headless");
   });
 });

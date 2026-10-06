@@ -22,12 +22,19 @@ export interface CacheMetadata {
   title?: string;
 }
 
-interface CachedResponse {
-  cacheVersion: 2;
-  fetchedAt: number;
+/** What a fetch produced, as stored in and returned from the cache */
+export interface CacheEntry {
   finalUrl: string;
   markdown: string;
   metadata: CacheMetadata;
+  strategy: "static" | "headless" | "markdown";
+}
+
+const CACHE_VERSION = 3;
+
+interface CachedResponse extends CacheEntry {
+  cacheVersion: typeof CACHE_VERSION;
+  fetchedAt: number;
   url: string;
 }
 
@@ -93,8 +100,8 @@ export async function readFromCache(
     ]);
     const payload = JSON.parse(file) as Record<string, unknown>;
 
-    // Reject old-format cache entries (v1 had content+strategy, no cacheVersion)
-    if (payload.cacheVersion !== 2) {
+    // Reject older formats (v1 cached raw HTML, v2 lacked the strategy)
+    if (payload.cacheVersion !== CACHE_VERSION) {
       return null;
     }
 
@@ -113,9 +120,7 @@ export async function readFromCache(
 
 export async function writeToCache(
   url: string,
-  markdown: string,
-  finalUrl: string,
-  metadata: CacheMetadata,
+  entry: CacheEntry,
   options?: Partial<CacheOptions>,
   extraction?: ExtractionOptions
 ): Promise<void> {
@@ -128,11 +133,9 @@ export async function writeToCache(
   const target = buildCachePath(url, cacheDir, extraction);
   await mkdir(dirname(target), { recursive: true });
   const payload: CachedResponse = {
-    cacheVersion: 2,
+    ...entry,
+    cacheVersion: CACHE_VERSION,
     fetchedAt: Date.now(),
-    finalUrl,
-    markdown,
-    metadata,
     url,
   };
   await writeFile(target, JSON.stringify(payload, null, 2), "utf8");

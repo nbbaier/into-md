@@ -356,8 +356,19 @@ async function offerBrowserInstall(launchError: unknown): Promise<void> {
   }
 }
 
+/** Strategies whose cached output satisfies each mode; `--no-js` also accepts markdown, since that came from a static fetch */
+const CACHEABLE_STRATEGIES: Record<
+  RenderMode,
+  readonly FetchResult["strategyUsed"][]
+> = {
+  auto: ["static", "headless", "markdown"],
+  headless: ["headless"],
+  static: ["static", "markdown"],
+};
+
 async function tryGetFromCache(
   url: string,
+  mode: RenderMode,
   options: FetchOptions
 ): Promise<FetchResult | null> {
   if (options.noCache) {
@@ -372,6 +383,13 @@ async function tryGetFromCache(
   if (!cached) {
     return null;
   }
+  if (!CACHEABLE_STRATEGIES[mode].includes(cached.strategy)) {
+    logVerbose(
+      `Cached ${cached.strategy} result doesn't match forced ${mode} mode; re-fetching`,
+      options
+    );
+    return null;
+  }
 
   logVerbose("Cache hit", options);
   return {
@@ -379,7 +397,7 @@ async function tryGetFromCache(
     fromCache: true,
     markdown: cached.markdown,
     metadata: cached.metadata,
-    strategyUsed: "static",
+    strategyUsed: cached.strategy,
   };
 }
 
@@ -545,7 +563,7 @@ async function orchestrateFetch(
   mode: RenderMode,
   options: FetchOptions
 ): Promise<FetchResult> {
-  const cached = await tryGetFromCache(url, options);
+  const cached = await tryGetFromCache(url, mode, options);
   if (cached) {
     options.onStrategyResolved?.(cached.strategyUsed);
     return cached;
@@ -570,9 +588,12 @@ async function orchestrateFetch(
   if (!options.noCache) {
     await writeToCache(
       url,
-      markdown,
-      result.finalUrl,
-      metadata,
+      {
+        finalUrl: result.finalUrl,
+        markdown,
+        metadata,
+        strategy: result.strategy,
+      },
       { enabled: !options.noCache, ...options.cache },
       extractionOptionsFrom(options)
     );

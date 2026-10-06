@@ -129,9 +129,17 @@ Tables are converted to fenced JSON blocks for reliable LLM parsing:
 
 ## Caching
 
-Responses are cached in `~/.cache/into-md/` with a 1-hour TTL. Cache entries store the strategy used (`static` or `headless`), so auto-detect can skip re-probing on repeat visits. Use `--no-cache` to bypass.
+Converted markdown is cached in `~/.cache/into-md/` with a 1-hour TTL. Each entry stores the markdown, page metadata, final URL, and the strategy that produced it (`static`, `headless`, or `markdown`), so a cache hit skips fetching and conversion entirely and reports the original strategy in the `Strategy:` line and frontmatter.
 
-When a forced flag (`--js` or `--no-js`) doesn't match the cached strategy, the cache is bypassed and the page is re-fetched.
+Entries are keyed by URL plus the options that change the output (`--raw`, `--exclude`, `--strip-links`, `--encoding`). Auto-detect reuses any fresh entry. A forced flag reuses only an entry its strategy could have produced, and otherwise re-fetches and overwrites it:
+
+| Flag      | Reuses cached           | Re-fetches on cached |
+| --------- | ----------------------- | -------------------- |
+| *(none)*  | any strategy            | —                    |
+| `--js`    | `headless`              | `static`, `markdown` |
+| `--no-js` | `static`, `markdown`    | `headless`           |
+
+`--no-cache` skips both reading and writing the cache.
 
 ## Playwright & Browser Binaries
 
