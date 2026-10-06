@@ -28,5 +28,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["docs/**/*.ts"]
+  "include": ["src", "website", "*.ts"]
 }

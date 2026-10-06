@@ -38,7 +38,7 @@ The pipeline runs fetch → extract → convert → frontmatter:
 
 ## Handoffs
 
-Handoff bundles go in `docs/handoffs/<name>-handoff/`; git, `tsc`, and `bun test` all ignore that path. Retired planning docs live in `docs/archive/`.
+Handoff bundles go in `docs/handoffs/<name>-handoff/`. `.gitignore`'s `*-handoff/` is the only exclusion they need: Biome follows `.gitignore`, `tsc` includes only `src/`, `website/`, and root `*.ts`, and `bun test` only searches `src/`. Retired planning docs live in `docs/archive/`.
 
 ## Commits & PRs
 
