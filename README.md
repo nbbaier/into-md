@@ -25,6 +25,8 @@ into-md <url>
 
 By default, `into-md` **auto-detects** whether a page needs a headless browser. It fetches with a static HTTP request first, inspects the result for SPA signals, and falls back to Playwright if needed.
 
+The static request sends `Accept: text/markdown, text/html`. If the server answers with `text/markdown`, that markdown is used as-is (no extraction or conversion), any frontmatter it carries is kept, and the strategy is reported as `markdown`. With `--verbose`, the server's `x-markdown-tokens` count is printed when present.
+
 ### Examples
 
 ```bash
@@ -64,7 +66,7 @@ into-md https://example.com/article -v
 | `--no-cache`            | Bypass response cache                                     | cache enabled |
 | `-v, --verbose`         | Show detailed progress information                        | minimal       |
 | `-h, --help`            | Show help                                                 | -             |
-| `--version`             | Show version                                              | -             |
+| `-V, --version`         | Show version                                              | -             |
 
 `--js` and `--no-js` are mutually exclusive — passing both is an error.
 
@@ -91,26 +93,27 @@ A strategy summary is printed to stderr on every run:
 ```
 Strategy: static
 Strategy: headless
-Strategy: auto > static      # auto-detect chose static
+Strategy: markdown            # server returned markdown directly
+Strategy: auto > static       # auto-detect chose static
 Strategy: auto > headless     # auto-detect fell back to headless
+Strategy: auto > markdown     # auto-detect got markdown from the server
 ```
 
 ### Frontmatter
 
-Standard metadata is included as YAML frontmatter:
+Page metadata is included as YAML frontmatter. `title`, `description`, and `author` come from the page's `<title>`/meta tags (falling back to Readability's title and byline) and are omitted when absent:
 
 ```yaml
 ---
 title: "Article Title"
 description: "Meta description from the page"
 author: "Author Name"
-date: "2024-01-15"
 strategy: "auto>headless"
 source: "https://example.com/article"
 ---
 ```
 
-The `strategy` field records how the page was fetched: `static`, `headless`, `auto>static`, or `auto>headless`.
+The `strategy` field records how the page was fetched: `static`, `headless`, `markdown`, or the `auto>` form of each. When the server returns markdown with its own frontmatter, those fields (for example `date`) are carried over.
 
 ### Tables
 
@@ -145,13 +148,14 @@ Entries are keyed by URL plus the options that change the output (`--raw`, `--ex
 
 Playwright is a required dependency but browser binaries are downloaded on first use. If binaries are missing when needed:
 
-- **Interactive terminal**: prompts to run `bunx playwright install chromium`
-- **Non-interactive / CI**: exits with an error and instructions
+- **Interactive terminal**: asks whether to install Chromium now and, if you agree, runs Playwright's installer with the current runtime (Bun or Node)
+- **Non-interactive / CI** (no TTY, or `CI` set): exits with an error telling you to run `bunx playwright install chromium`
 
 ## Development
 
 ```bash
 bun install              # Install dependencies
+bun run start -- <url>   # Run the CLI from source
 bun run build            # Build the CLI
 bun run build:watch      # Build with watch mode
 bun run test             # Run tests
@@ -164,7 +168,7 @@ bun run typecheck        # Type check
 
 - **Runtime**: Bun
 - **Language**: TypeScript
-- **HTML Parsing / DOM**: linkedom (parse5 fallback for documents without `<html>`/`<body>` tags)
+- **HTML Parsing / DOM**: linkedom, with parse5 normalizing documents linkedom would build differently from a browser (missing `<html>`/`<body>`, misplaced table content)
 - **Markdown Conversion**: turndown
 - **Content Extraction**: @mozilla/readability
 - **Headless Browser**: playwright
