@@ -23,6 +23,7 @@ The pipeline runs fetch → extract → convert → frontmatter:
 - `bun run start -- <url>` — run the CLI from source.
 - `bun test`, `bun run typecheck`, `bun run check` (Ultracite/Biome; `bun run fix` autofixes) — CI runs all three.
 - `bun run build` — bundle with tsdown into `dist/`.
+- Cutting a release (version, tag, npm publish, GitHub release): follow `docs/RELEASING.md`.
 
 ## Coding Style
 

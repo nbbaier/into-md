@@ -40,9 +40,9 @@
     "destroy": "alchemy destroy",
     "dev": "alchemy dev --stage dev",
     "fix": "ultracite fix",
-    "release:major": "npm version major -m 'v%s' && bun run build",
-    "release:minor": "npm version minor -m 'v%s' && bun run build",
-    "release:patch": "npm version patch -m 'v%s' && bun run build",
+    "release:major": "npm version major -m 'v%s' && bun run build && git push --follow-tags",
+    "release:minor": "npm version minor -m 'v%s' && bun run build && git push --follow-tags",
+    "release:patch": "npm version patch -m 'v%s' && bun run build && git push --follow-tags",
     "start": "bun run src/index.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
