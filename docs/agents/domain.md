@@ -11,16 +11,16 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Single-context repo:
+Single-context repo (this repo):
 
 ```
 /
 ├── GLOSSARY.md
 ├── docs/adr/
-│   ├── 0001-....md
-│   └── 0002-....md
 └── src/
 ```
+
+`GLOSSARY.md` and `docs/adr/` do not exist yet; they are created lazily.
 
 ## Use the glossary's vocabulary
 
@@ -32,4 +32,4 @@ If the concept you need isn't in the glossary yet, that's a signal: either you'r
 
 If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
 
-> _Contradicts ADR-0007 (...), but worth reopening because…_
+> _Contradicts ADR-NNNN (short title), but worth reopening because…_
