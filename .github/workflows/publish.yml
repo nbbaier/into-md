@@ -1,8 +1,10 @@
 name: Publish
 
-# Publishing a GitHub release publishes the tagged version to npm.
+# Publishing a GitHub release stages the tagged version on npm; it goes
+# live once a maintainer approves it with 2FA (`npm stage approve`).
 # Auth is npm trusted publishing (OIDC): no token secret. The trusted
-# publisher on npmjs.com must name this file, `publish.yml`, exactly.
+# publisher on npmjs.com must name this file, `publish.yml`, exactly,
+# and is limited to `npm stage publish`.
 on:
    release:
       types: [published]
@@ -63,7 +65,7 @@ jobs:
 
    # Holds the OIDC token, so it runs only first-party GitHub actions and npm.
    publish:
-      name: npm publish
+      name: npm stage publish
       needs: build
       runs-on: ubuntu-latest
       permissions:
@@ -77,16 +79,15 @@ jobs:
               name: dist
               path: dist/
 
-         # Trusted publishing needs npm >= 11.5.1 and Node >= 22.14.0.
+         # Staged publishing needs npm >= 11.15.0 and Node >= 22.14.0.
          - uses: actions/setup-node@v6
            with:
               node-version: "24"
               registry-url: "https://registry.npmjs.org"
               package-manager-cache: false
 
-         - name: Ensure npm supports trusted publishing
-           run: npm install -g npm@^11.5.1 && npm --version
+         - name: Ensure npm supports staged publishing
+           run: npm install -g npm@^11.15.0 && npm --version
 
-         # Provenance is generated automatically under trusted publishing.
-         - name: Publish
-           run: npm publish
+         - name: Stage for approval
+           run: npm stage publish

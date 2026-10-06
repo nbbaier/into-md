@@ -12,21 +12,25 @@ Releases go out from a clean, CI-green `main`. Pick the bump by semver: fixes �
 
    This bumps `package.json`, commits `vX.Y.Z`, creates an annotated `vX.Y.Z` tag, builds `dist/`, and runs `git push --follow-tags`. Confirm the tag reached GitHub with `git ls-remote --tags origin vX.Y.Z`.
 
-3. **GitHub release**, with the changelog entry as notes. Publishing it triggers `.github/workflows/publish.yml`, which publishes to npm:
+3. **GitHub release**, with the changelog entry as notes. Publishing it triggers `.github/workflows/publish.yml`, which stages the version on npm:
 
    ```bash
    v=X.Y.Z
    awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > /tmp/notes.md
    gh release create "v$v" --title "v$v" --notes-file /tmp/notes.md
+   gh run watch "$(gh run list --workflow publish.yml --limit 1 --json databaseId -q '.[0].databaseId')" --exit-status
    ```
 
-4. **Watch the publish.**
+   The workflow fails before staging if the tag doesn't match `package.json` or a check fails. Re-run transient failures (or npm-side setup fixes) with `gh run rerun <id>`; a failure that needs a code change needs a new patch version, since the tag is already pushed. It authenticates through npm trusted publishing (no token), which is limited to `npm stage publish`. Pre-releases are skipped.
+
+4. **Approve on npm.** The staged version is not installable until a maintainer approves it with 2FA, either on npmjs.com (`into-md` → **Staged Packages** → **Approve**) or from the CLI:
 
    ```bash
-   gh run watch "$(gh run list --workflow publish.yml --limit 1 --json databaseId -q '.[0].databaseId')" --exit-status
-   npm view into-md version
+   npm stage list into-md          # find the stage id
+   npm stage approve <stage-id>    # prompts for 2FA
+   npm view into-md version        # should now print X.Y.Z
    ```
 
-   The workflow fails before publishing if the tag doesn't match `package.json` or a check fails. Re-run transient failures (or npm-side setup fixes) with `gh run rerun <id>`; a failure that needs a code change needs a new patch version, since the tag is already pushed. It authenticates through npm trusted publishing (no token), and npm attaches provenance automatically. Pre-releases are skipped. `npm pack --dry-run` previews the package contents (`files` in `package.json` plus README, LICENSE, and `package.json`).
+   `npm stage download <stage-id>` fetches the tarball if you want to inspect it first; `npm pack --dry-run` locally previews the same contents (`files` in `package.json` plus README, LICENSE, and `package.json`).
 
 A plain `git push` never sends tags, which is how the `v1.0.0` tag once stayed local after its release commit was pushed. `--follow-tags` sends only annotated tags; `npm version` creates those, so if you tag by hand use `git tag -a vX.Y.Z -m vX.Y.Z`.
