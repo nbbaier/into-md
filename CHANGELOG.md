@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-05
+
 ### Changed
 
 - Replaced JSDOM and cheerio with linkedom, and parse each page once: auto
@@ -78,4 +80,6 @@ First stable release. The v1 CLI surface is now frozen — the documented flags
 - Synced `bun.lock` dependency ranges to `package.json` so CI installs with
   `--frozen-lockfile`.
 
+[1.0.2]: https://github.com/nbbaier/into-md/releases/tag/v1.0.2
+[1.0.1]: https://github.com/nbbaier/into-md/releases/tag/v1.0.1
 [1.0.0]: https://github.com/nbbaier/into-md/releases/tag/v1.0.0
